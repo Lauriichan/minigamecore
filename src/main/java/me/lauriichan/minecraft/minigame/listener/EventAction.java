@@ -16,7 +16,7 @@ public final class EventAction {
 
     private final Method method;
     private final MethodHandle handle;
-    private final Class<?> eventType;
+    private final Class<? extends Event> eventType;
 
     private final Listener listener;
 
@@ -37,7 +37,7 @@ public final class EventAction {
         this.parent = parent;
         this.method = method;
         this.handle = JavaAccessor.accessMethod(method);
-        this.eventType = type;
+        this.eventType = type.asSubclass(Event.class);
         this._static = Modifier.isStatic(method.getModifiers());
     }
     
@@ -57,7 +57,7 @@ public final class EventAction {
         return handle;
     }
 
-    public Class<?> getEventType() {
+    public Class<? extends Event> getEventType() {
         return eventType;
     }
 

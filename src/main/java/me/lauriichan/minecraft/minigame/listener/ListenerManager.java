@@ -2,6 +2,9 @@ package me.lauriichan.minecraft.minigame.listener;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.event.Event;
 import org.bukkit.plugin.Plugin;
@@ -21,9 +24,13 @@ public final class ListenerManager {
     private final ConcurrentHashMap<Class<? extends Event>, EventContainer> events = new ConcurrentHashMap<>();
 
     private final Plugin plugin;
+    private final Logger logger;
+
+    private final Function<Class<? extends Event>, EventContainer> containerBuilder = (clazz) -> new EventContainer(this, clazz);
 
     public ListenerManager(final Plugin plugin, final GameManager gameManager, final InjectManager injectManager) {
         this.plugin = plugin;
+        this.logger = plugin.getLogger();
         this.gameManager = gameManager;
         this.injectManager = injectManager;
     }
@@ -50,10 +57,21 @@ public final class ListenerManager {
             for (EventContainer container : events.values()) {
                 container.dispose();
             }
-            events.clear();
         }
         return AnnotationTools.load(source, (clazz) -> {
-            // TODO: Load listeners
+            try {
+                EventListener listener = new EventListener(injectManager, clazz);
+                if (!listener.hasActions()) {
+                    return;
+                }
+                listeners.add(listener);
+                EventAction[] actions = listener.getActions();
+                for (EventAction action : actions) {
+                    events.computeIfAbsent(action.getEventType(), containerBuilder).add(action);
+                }
+            } catch (IllegalStateException | NullPointerException exp) {
+                logger.log(Level.WARNING, "Failed to load EventListener '" + clazz.getName() + "'!", exp);
+            }
         });
     }
 

@@ -17,13 +17,31 @@ public final class GameManager implements InjectListener {
     private final Logger logger;
     private final InjectManager inject;
 
+    private final GameTicker ticker;
+
     private final HashMap<String, GameHolder> games = new HashMap<>();
 
     private String activeId;
 
     public GameManager(final Logger logger, final InjectManager inject) {
+        this.ticker = new GameTicker(logger, this::tick);
         this.logger = logger;
         this.inject = inject;
+    }
+
+    private void tick(long delta) {
+        GamePhase phase = getActivePhase();
+        if (phase == null) {
+            return;
+        }
+        phase.onTick(delta);
+        if (phase.nextPhase()) {
+            getActive().nextPhase();
+        }
+    }
+
+    public GameTicker getTicker() {
+        return ticker;
     }
 
     public boolean load(final Resources resources) {
@@ -106,6 +124,7 @@ public final class GameManager implements InjectListener {
         }
         if (holder == null) {
             activeId = null;
+            ticker.pause();
             return true;
         }
         activeId = holder.getId();
@@ -114,8 +133,10 @@ public final class GameManager implements InjectListener {
         } catch (Exception exception) {
             logger.log(Level.SEVERE, "Failed to start game '" + holder.getName() + "'!", exception);
             activeId = null;
+            ticker.pause();
             return false;
         }
+        ticker.start();
         holder.setActive(true);
         return true;
     }

@@ -4,7 +4,7 @@ public abstract class GamePhase {
 
     public void onStart() {};
 
-    public void onTick() {};
+    public void onTick(long delta) {};
 
     public void onEnd() {};
     

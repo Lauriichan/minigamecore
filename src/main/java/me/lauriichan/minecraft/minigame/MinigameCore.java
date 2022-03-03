@@ -39,19 +39,21 @@ public abstract class MinigameCore extends JavaPlugin {
 
     @Override
     public final void onLoad() {
+        listenerManager.load(getResources());
         commandManager.load(getResources());
         parserManager.load(getResources());
+        gameManager.load(getResources());
         onPluginLoad();
     }
 
     @Override
     public final void onEnable() {
-
         onPluginEnable();
     }
 
     @Override
     public final void onDisable() {
+        gameManager.getTicker().stop();
         onPluginDisable();
         resources.set(null);
         JavaInstance.clear();
