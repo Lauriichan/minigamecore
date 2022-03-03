@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 
 import me.lauriichan.minecraft.minigame.command.annotation.Parser;
 import me.lauriichan.minecraft.minigame.command.parser.*;
+import me.lauriichan.minecraft.minigame.inject.InjectManager;
 import me.lauriichan.minecraft.minigame.util.AnnotationTools;
 import me.lauriichan.minecraft.minigame.util.IntWrapper;
 import me.lauriichan.minecraft.minigame.util.JavaAccessor;
@@ -25,9 +26,11 @@ public final class ParserManager {
     private final HashMap<Class<?>, Class<? extends IArgumentParser>> types = new HashMap<>();
 
     private final Logger logger;
+    private final InjectManager inject;
 
-    public ParserManager(final Logger logger) {
+    public ParserManager(final Logger logger, final InjectManager inject) {
         this.logger = logger;
+        this.inject = inject;
         parsers.put(ObjectParser.class, new ObjectParser(this));
         parsers.put(StringParser.class, new StringParser());
         parsers.put(ByteParser.class, new ByteParser());
@@ -41,7 +44,7 @@ public final class ParserManager {
     }
 
     public boolean load(final Resources resources) {
-        return load(resources.pathIntern("generated/argument-parsers"));
+        return load(resources.pathAnnotation(Parser.class));
     }
 
     public boolean load(final DataSource data) {
@@ -50,7 +53,7 @@ public final class ParserManager {
             if (parserInfo == null) {
                 return;
             }
-            IArgumentParser<?> parser = (IArgumentParser<?>) JavaAccessor.instance(clazz);
+            IArgumentParser<?> parser = inject.initialize(clazz);
             if (parser == null) {
                 return;
             }
@@ -79,7 +82,7 @@ public final class ParserManager {
         return parsers.get(parserType);
     }
 
-    public Object[] parse(final ActionInfo action, final CommandSender sender, final int rawOffset, final String[] args) {
+    public Object[] parseCommand(final ActionInfo action, final CommandSender sender, final int rawOffset, final String[] args) {
         if (action.arguments().size() == 0) {
             return EMPTY_ARGUMENTS;
         }
@@ -110,15 +113,15 @@ public final class ParserManager {
         return output;
     }
 
-    public <E> E parse(final Class<? extends IArgumentParser<E>> parserType, final Class<?> type, final IntWrapper offset,
+    public <A extends IArgumentParser<?>> Object parse(final Class<A> parserType, final Class<?> type, final IntWrapper offset,
         final String[] arguments) throws IllegalArgumentException {
         final IArgumentParser<?> rawParser = parsers.get(parserType);
         if (rawParser == null) {
             throw new IllegalStateException("Couldn't find parser '" + parserType.getName() + "'");
         }
-        final IArgumentParser<E> parser = parserType.cast(rawParser);
-        final Tuple<E, Integer> tuple = parser.parse(type, offset.value(), arguments);
-        offset.add(tuple.getSecond());
+        final A parser = parserType.cast(rawParser);
+        final Tuple tuple = parser.parse(type, offset.value(), arguments);
+        offset.add((Integer) tuple.getSecond());
         return tuple.getFirst();
     }
 

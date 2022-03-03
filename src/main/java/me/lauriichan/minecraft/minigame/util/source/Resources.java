@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -21,6 +22,7 @@ import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
 
+import me.lauriichan.minecraft.minigame.annotation.AnnotationProcessor;
 import me.lauriichan.minecraft.minigame.util.Reference;
 
 public final class Resources {
@@ -158,6 +160,10 @@ public final class Resources {
         return new URLSource(url);
     }
 
+    public PathSource pathAnnotation(Class<? extends Annotation> clazz) {
+        return path(getInternalPath(AnnotationProcessor.ANNOTATION_RESOURCE + clazz.getName()));
+    }
+
     public PathSource pathIntern(String path) {
         return path(getInternalPath(path));
     }
@@ -176,6 +182,14 @@ public final class Resources {
 
     public PathSource path(Path path) {
         return new PathSource(path);
+    }
+
+    public FileSource fileData(String directory, String path) {
+        return file(new File(folder, directory), path);
+    }
+
+    public FileSource fileData(String path) {
+        return new FileSource(new File(folder, path));
     }
 
     public FileSource file(String directory, String path) {

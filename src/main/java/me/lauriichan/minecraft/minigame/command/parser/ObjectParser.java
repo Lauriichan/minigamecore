@@ -1,5 +1,7 @@
 package me.lauriichan.minecraft.minigame.command.parser;
 
+import com.syntaxphoenix.syntaxapi.utils.java.Primitives;
+
 import me.lauriichan.minecraft.minigame.command.IArgumentParser;
 import me.lauriichan.minecraft.minigame.command.ParserManager;
 import me.lauriichan.minecraft.minigame.util.Tuple;
@@ -13,8 +15,8 @@ public final class ObjectParser implements IArgumentParser<Object> {
     }
 
     @Override
-    public Tuple<Object, Integer> parse(final Class<?> type, final int offset, final String[] arguments) throws IllegalArgumentException {
-        final IArgumentParser<?> parser = manager.getParserFor(type);
+    public Tuple<Object, Integer> parse(Class<?> type, final int offset, final String[] arguments) throws IllegalArgumentException {
+        final IArgumentParser<?> parser = manager.getParserFor((type = Primitives.fromPrimitive(type)));
         if (parser == null) {
             throw new IllegalArgumentException("Couldn't find parser for type '" + type.getSimpleName() + "'!");
         }

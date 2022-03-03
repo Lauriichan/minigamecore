@@ -1,13 +1,13 @@
-package me.lauriichan.minecraft.minigame.annotation;
+package me.lauriichan.minecraft.minigame.game;
 
 import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.SOURCE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-@Retention(SOURCE)
 @Target(TYPE)
+@Retention(RUNTIME)
 public @interface Minigame {
 
     String id();

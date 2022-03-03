@@ -15,6 +15,7 @@ import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.plugin.Plugin;
 
 import me.lauriichan.minecraft.minigame.command.annotation.Command;
+import me.lauriichan.minecraft.minigame.inject.InjectManager;
 import me.lauriichan.minecraft.minigame.util.AnnotationTools;
 import me.lauriichan.minecraft.minigame.util.JavaAccessor;
 import me.lauriichan.minecraft.minigame.util.MinecraftConstant;
@@ -25,6 +26,7 @@ public final class CommandManager implements CommandExecutor {
 
     private final Plugin plugin;
     private final ParserManager parser;
+    private final InjectManager inject;
     private final HashMap<String, CommandInfo> commandMap = new HashMap<>();
 
     private final MethodHandle pluginCommandConstructor = JavaAccessor
@@ -34,13 +36,14 @@ public final class CommandManager implements CommandExecutor {
     private final MethodHandle craftServerGetCommandMap = JavaAccessor
         .accessMethod(JavaAccessor.getMethod(JavaAccessor.getClass("CraftServer"), "getCommandMap"));
 
-    public CommandManager(final Plugin plugin, final ParserManager parser) {
+    public CommandManager(final Plugin plugin, final ParserManager parser, final InjectManager inject) {
         this.plugin = plugin;
         this.parser = parser;
+        this.inject = inject;
     }
 
     public boolean load(final Resources resources) {
-        return load(resources.pathIntern("generated/commands"));
+        return load(resources.pathAnnotation(Command.class));
     }
 
     public boolean load(final DataSource data) {
@@ -53,7 +56,9 @@ public final class CommandManager implements CommandExecutor {
             if (commandInfo == null) {
                 return;
             }
-            CommandInfo command = new CommandInfo(clazz, commandInfo);
+            inject.inject(clazz);
+            CommandInfo command = new CommandInfo(clazz, inject.initialize(clazz), commandInfo);
+            inject.inject(command.instance());
             commandMap.put(command.name(), command);
             for (String alias : command.aliases()) {
                 commandMap.put(alias, command);
@@ -120,7 +125,7 @@ public final class CommandManager implements CommandExecutor {
             // TODO: Command doesn't exist message
             return false;
         }
-        Object[] arguments = parser.parse(action, sender, offset, args);
+        Object[] arguments = parser.parseCommand(action, sender, offset, args);
         if (arguments == null) {
             // TODO: Command too less arguments message
             return false;

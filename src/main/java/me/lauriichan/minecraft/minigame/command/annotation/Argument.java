@@ -1,7 +1,7 @@
 package me.lauriichan.minecraft.minigame.command.annotation;
 
 import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.RetentionPolicy.SOURCE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -9,8 +9,8 @@ import java.lang.annotation.Target;
 import me.lauriichan.minecraft.minigame.command.IArgumentParser;
 import me.lauriichan.minecraft.minigame.command.parser.ObjectParser;
 
-@Retention(SOURCE)
 @Target(PARAMETER)
+@Retention(RUNTIME)
 public @interface Argument {
 
     Class<? extends IArgumentParser<?>> parser() default ObjectParser.class;

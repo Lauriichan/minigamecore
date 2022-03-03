@@ -24,9 +24,9 @@ final class CommandInfo {
 
     private final int pathDepth;
 
-    CommandInfo(final Class<?> owner, final Command command) {
+    CommandInfo(final Class<?> owner, final Object instance, final Command command) {
         this.owner = Checks.isNotNull(owner);
-        this.instance = Checks.isNotNull(JavaAccessor.instance(owner));
+        this.instance = Checks.isNotNull(instance);
         this.name = Checks.isNotBlank(Checks.isNotNull(command).name().toLowerCase().replace(" ", ""), "Command name can't be blank");
         this.description = command.description();
         final ArrayList<String> aliases = new ArrayList<>();

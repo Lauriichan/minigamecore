@@ -13,6 +13,9 @@ public final class AnnotationTools {
     }
 
     public static boolean load(final DataSource source, final Consumer<Class<?>> consumer) {
+        if (source == null || !source.exists()) {
+            return false;
+        }
         try {
             BufferedReader reader = source.openBufferedReader();
             String classPath;
@@ -30,6 +33,9 @@ public final class AnnotationTools {
     }
 
     public static <E> boolean load(final DataSource source, final Consumer<Class<? extends E>> consumer, final Class<E> superType) {
+        if (source == null || !source.exists()) {
+            return false;
+        }
         try {
             BufferedReader reader = source.openBufferedReader();
             String classPath;

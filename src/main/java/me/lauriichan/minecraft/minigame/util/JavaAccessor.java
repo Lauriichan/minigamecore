@@ -601,6 +601,10 @@ public final class JavaAccessor {
         return null;
     }
 
+    public static boolean hasAnnotation(final AnnotatedElement element, final Class<? extends Annotation> annotationType) {
+        return element.isAnnotationPresent(annotationType);
+    }
+
     public static <A extends Annotation> A getAnnotation(final AnnotatedElement element, final Class<A> annotationType) {
         final A annotation = element.getAnnotation(annotationType);
         if (annotation != null) {
