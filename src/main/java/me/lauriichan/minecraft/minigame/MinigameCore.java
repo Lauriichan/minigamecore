@@ -1,6 +1,10 @@
 
 package me.lauriichan.minecraft.minigame;
 
+import java.io.File;
+import java.util.function.Supplier;
+import java.util.logging.Logger;
+
 import org.bukkit.plugin.java.JavaPlugin;
 
 import me.lauriichan.minecraft.minigame.command.CommandManager;
@@ -13,23 +17,37 @@ import me.lauriichan.minecraft.minigame.util.JavaInstance;
 import me.lauriichan.minecraft.minigame.util.Reference;
 import me.lauriichan.minecraft.minigame.util.source.Resources;
 
-public abstract class MinigameCore extends JavaPlugin {
+public final class MinigameCore {
 
-    protected final InjectManager injectManager = new InjectManager(getLogger());
+    private final InjectManager injectManager;
 
-    protected final ParserManager parserManager = new ParserManager(getLogger(), injectManager);
-    protected final CommandManager commandManager = new CommandManager(this, parserManager, injectManager);
+    private final ParserManager parserManager;
+    private final CommandManager commandManager;
 
-    protected final ConfigManager configManager = new ConfigManager(this, injectManager);
-    protected final GameManager gameManager = new GameManager(getLogger(), injectManager);
+    private final ConfigManager configManager;
+    private final GameManager gameManager;
 
-    protected final ListenerManager listenerManager = new ListenerManager(this, gameManager, injectManager);
+    private final ListenerManager listenerManager;
+
+    private final Logger logger;
+
+    private final Supplier<File> fileSupplier;
+    private final File dataFolder;
 
     private final Reference<Resources> resources = Reference.of();
 
-    public MinigameCore() {
-        JavaInstance.put(this);
-        JavaInstance.put(getLogger());
+    public MinigameCore(final JavaPlugin plugin, final Supplier<File> fileSupplier) {
+        this.fileSupplier = fileSupplier;
+        this.logger = plugin.getLogger();
+        this.dataFolder = plugin.getDataFolder();
+        this.injectManager = new InjectManager(logger);
+        this.parserManager = new ParserManager(logger, injectManager);
+        this.commandManager = new CommandManager(plugin, parserManager, injectManager);
+        this.configManager = new ConfigManager(this, injectManager);
+        this.gameManager = new GameManager(logger, injectManager);
+        this.listenerManager = new ListenerManager(plugin, gameManager, injectManager);
+        JavaInstance.put(plugin);
+        JavaInstance.put(logger);
         JavaInstance.put(injectManager);
         JavaInstance.put(parserManager);
         JavaInstance.put(commandManager);
@@ -37,24 +55,24 @@ public abstract class MinigameCore extends JavaPlugin {
         JavaInstance.put(gameManager);
     }
 
-    @Override
-    public final void onLoad() {
+    public final void load() {
         listenerManager.load(getResources());
         commandManager.load(getResources());
         parserManager.load(getResources());
         gameManager.load(getResources());
-        onPluginLoad();
     }
 
-    @Override
-    public final void onEnable() {
-        onPluginEnable();
+    public final void disable(final Runnable runnable) {
+        preDisable();
+        runnable.run();
+        postDisable();
     }
 
-    @Override
-    public final void onDisable() {
+    public final void preDisable() {
         gameManager.getTicker().stop();
-        onPluginDisable();
+    }
+
+    public final void postDisable() {
         resources.set(null);
         JavaInstance.clear();
     }
@@ -63,9 +81,17 @@ public abstract class MinigameCore extends JavaPlugin {
         if (resources.isPresent()) {
             return resources.get();
         }
-        Resources resource = new Resources(getDataFolder(), getFile(), getLogger());
+        Resources resource = new Resources(dataFolder, fileSupplier.get(), getLogger());
         JavaInstance.put(resource);
         return resources.set(resource).get();
+    }
+
+    public final Logger getLogger() {
+        return logger;
+    }
+
+    public final InjectManager getInjectManager() {
+        return injectManager;
     }
 
     public final ParserManager getParserManager() {
@@ -76,26 +102,16 @@ public abstract class MinigameCore extends JavaPlugin {
         return commandManager;
     }
 
-    /*
-     * Delegate
-     */
+    public final ConfigManager getConfigManager() {
+        return configManager;
+    }
 
-    /**
-     * Runs on plugin enable after the minigame core code Is normally not required
-     * by most minigames
-     */
-    protected void onPluginEnable() {}
+    public final GameManager getGameManager() {
+        return gameManager;
+    }
 
-    /**
-     * Runs on plugin disable before the minigame core code Is normally not required
-     * by most minigames
-     */
-    protected void onPluginDisable() {}
-
-    /**
-     * Runs on plugin load after the minigame core code Is normally not required by
-     * most minigames
-     */
-    protected void onPluginLoad() {}
+    public final ListenerManager getListenerManager() {
+        return listenerManager;
+    }
 
 }
