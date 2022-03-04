@@ -22,7 +22,9 @@ import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
 
+import me.lauriichan.minecraft.minigame.annotation.AnnotationId;
 import me.lauriichan.minecraft.minigame.annotation.AnnotationProcessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccessor;
 import me.lauriichan.minecraft.minigame.util.Reference;
 
 public final class Resources {
@@ -161,7 +163,11 @@ public final class Resources {
     }
 
     public PathSource pathAnnotation(Class<? extends Annotation> clazz) {
-        return path(getInternalPath(AnnotationProcessor.ANNOTATION_RESOURCE + clazz.getName()));
+        AnnotationId id = JavaAccessor.getAnnotation(clazz, AnnotationId.class);
+        if (id == null) {
+            return path(getInternalPath(AnnotationProcessor.ANNOTATION_RESOURCE + clazz.getSimpleName()));
+        }
+        return path(getInternalPath(AnnotationProcessor.ANNOTATION_RESOURCE + id.name()));
     }
 
     public PathSource pathIntern(String path) {

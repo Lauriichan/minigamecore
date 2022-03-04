@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -38,6 +37,7 @@ import me.lauriichan.minecraft.minigame.command.annotation.Parser;
 import me.lauriichan.minecraft.minigame.game.Game;
 import me.lauriichan.minecraft.minigame.game.Minigame;
 import me.lauriichan.minecraft.minigame.listener.Listener;
+import me.lauriichan.minecraft.minigame.util.JavaAccessor;
 
 @SuppressWarnings("unchecked")
 public final class AnnotationProcessor extends AbstractProcessor {
@@ -64,6 +64,8 @@ public final class AnnotationProcessor extends AbstractProcessor {
         ElementKind.CLASS,
         ElementKind.CLASS
     };
+
+    private static final String[] NAMES = new String[ANNOTATIONS.length];
 
     private static final Class<? extends Annotation>[][] INCOMPATIBLE = new Class[][] {
         null,
@@ -101,6 +103,12 @@ public final class AnnotationProcessor extends AbstractProcessor {
             Class<? extends Annotation> annotationClass = ANNOTATIONS[index];
             paths.put(annotationClass, new HashSet<>());
             annotationType[index] = elements.getTypeElement(annotationClass.getName()).asType();
+            AnnotationId id = JavaAccessor.getAnnotation(annotationClass, AnnotationId.class);
+            if (id == null) {
+                NAMES[index] = annotationClass.getSimpleName();
+                continue;
+            }
+            NAMES[index] = id.name();
         }
     }
 
@@ -174,9 +182,10 @@ public final class AnnotationProcessor extends AbstractProcessor {
         }
         log(Kind.NOTE, "Writing information...");
         try {
-            for (Entry<Class<? extends Annotation>, HashSet<String>> entry : paths.entrySet()) {
-                String className = entry.getKey().getName();
-                HashSet<String> set = entry.getValue();
+            for (int index = 0; index < ANNOTATIONS.length; index++) {
+                Class<? extends Annotation> clazz = ANNOTATIONS[index];
+                String className = NAMES[index];
+                HashSet<String> set = paths.get(clazz);
                 if (set.isEmpty()) {
                     continue;
                 }

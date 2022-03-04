@@ -6,8 +6,11 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+import me.lauriichan.minecraft.minigame.annotation.AnnotationId;
+
 @Target(TYPE)
 @Retention(RUNTIME)
+@AnnotationId(name = "Command")
 public @interface Command {
 
     String name();
