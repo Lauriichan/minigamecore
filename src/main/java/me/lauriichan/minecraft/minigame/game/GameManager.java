@@ -1,7 +1,7 @@
 package me.lauriichan.minecraft.minigame.game;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,7 +60,7 @@ public final class GameManager implements InjectListener {
             }
             GameHolder holder = new GameHolder(clazz, game, minigame);
             try {
-                HashSet<Class<? extends GamePhase>> phases = new HashSet<>();
+                LinkedHashSet<Class<? extends GamePhase>> phases = new LinkedHashSet<>();
                 game.onLoad(phases);
                 holder.setPhases(logger, inject, phases);
             } catch (Exception exception) {
