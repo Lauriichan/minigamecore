@@ -1,4 +1,4 @@
-package me.lauriichan.minecraft.minigame.config;
+package me.lauriichan.minecraft.minigame.data.automatic.config;
 
 import java.io.File;
 import java.io.IOException;

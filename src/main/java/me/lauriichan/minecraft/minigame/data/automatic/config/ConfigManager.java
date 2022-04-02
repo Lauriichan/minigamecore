@@ -1,4 +1,4 @@
-package me.lauriichan.minecraft.minigame.config;
+package me.lauriichan.minecraft.minigame.data.automatic.config;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -15,12 +15,12 @@ import me.lauriichan.minecraft.minigame.util.JavaAccessor;
 
 public final class ConfigManager implements InjectListener {
 
-    private static final Function<String, ArrayList<ConfigSync>> LIST_FUNCTION = (ignore) -> new ArrayList<>();
+    private static final Function<String, ArrayList<IConfigSync>> LIST_FUNCTION = (ignore) -> new ArrayList<>();
 
     private final MinigameCore core;
 
     private final HashMap<String, FileConfig> configurations = new HashMap<>();
-    private final HashMap<String, ArrayList<ConfigSync>> synchronize = new HashMap<>();
+    private final HashMap<String, ArrayList<IConfigSync>> synchronize = new HashMap<>();
 
     public ConfigManager(final MinigameCore core, final InjectManager inject) {
         inject.listen(this);
@@ -34,13 +34,8 @@ public final class ConfigManager implements InjectListener {
             if (!Modifier.isStatic(field.getModifiers())) {
                 continue;
             }
-            Config configInfo = JavaAccessor.getAnnotation(field, Config.class);
-            if (configInfo == null) {
-                continue;
-            }
-            ConfigSync sync = new ConfigSync(null, field);
-            sync.update(get(sync.getPath()).getConfig().get(sync.getKey()));
-            synchronize.computeIfAbsent(sync.getPath(), LIST_FUNCTION).add(sync);
+            syncValue(null, field);
+            syncSection(null, field);
         }
     }
 
@@ -51,14 +46,29 @@ public final class ConfigManager implements InjectListener {
             if (Modifier.isStatic(field.getModifiers())) {
                 continue;
             }
-            Config configInfo = JavaAccessor.getAnnotation(field, Config.class);
-            if (configInfo == null) {
-                continue;
-            }
-            ConfigSync sync = new ConfigSync(instance, field);
-            sync.update(get(sync.getPath()).getConfig().get(sync.getKey()));
-            synchronize.computeIfAbsent(sync.getPath(), LIST_FUNCTION).add(sync);
+            syncValue(instance, field);
+            syncSection(instance, field);
         }
+    }
+
+    private void syncValue(Object instance, Field field) {
+        Config configInfo = JavaAccessor.getAnnotation(field, Config.class);
+        if (configInfo == null) {
+            return;
+        }
+        ConfigSync sync = new ConfigSync(instance, field);
+        sync.update(get(sync.getPath()).getConfig().get(sync.getKey()));
+        synchronize.computeIfAbsent(sync.getPath(), LIST_FUNCTION).add(sync);
+    }
+
+    private void syncSection(Object instance, Field field) {
+        ConfigSection configInfo = JavaAccessor.getAnnotation(field, ConfigSection.class);
+        if (configInfo == null) {
+            return;
+        }
+        ConfigSectionSync sync = new ConfigSectionSync(instance, field);
+        sync.update(get(sync.getPath()).getConfig().get(sync.getKey()));
+        synchronize.computeIfAbsent(sync.getPath(), LIST_FUNCTION).add(sync);
     }
 
     private FileConfig get(String path) {
@@ -72,13 +82,13 @@ public final class ConfigManager implements InjectListener {
     }
 
     void update(String path, YamlConfiguration configuration) {
-        ArrayList<ConfigSync> values = synchronize.get(path);
+        ArrayList<IConfigSync> values = synchronize.get(path);
         if (values == null || values.isEmpty()) {
             return;
         }
         for (int index = 0; index < values.size(); index++) {
-            ConfigSync sync = values.get(index);
-            sync.update(configuration.get(sync.getKey()));
+            IConfigSync sync = values.get(index);
+            sync.update(sync.extractValue(configuration, sync.getKey()));
         }
     }
 

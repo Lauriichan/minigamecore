@@ -13,6 +13,7 @@ import me.lauriichan.minecraft.minigame.inject.InjectManager;
 import me.lauriichan.minecraft.minigame.util.AnnotationTools;
 import me.lauriichan.minecraft.minigame.util.IntWrapper;
 import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.Reference;
 import me.lauriichan.minecraft.minigame.util.Tuple;
 import me.lauriichan.minecraft.minigame.util.source.DataSource;
 import me.lauriichan.minecraft.minigame.util.source.Resources;
@@ -101,7 +102,7 @@ public final class ParserManager {
                 continue;
             }
             try {
-                output[arguments.indexOf(info)] = parse(info.parser(), info.type(), offset, args);
+                output[arguments.indexOf(info)] = parse(info, info.parserType(), offset, args);
             } catch (Exception exp) { // Safety
                 if (exp instanceof IllegalArgumentException) {
                     throw exp;
@@ -113,16 +114,25 @@ public final class ParserManager {
         return output;
     }
 
-    public <A extends IArgumentParser<?>> Object parse(final Class<A> parserType, final Class<?> type, final IntWrapper offset,
+    public <A extends IArgumentParser<?>> Object parse(final ArgumentInfo info, final Class<A> parserType, final IntWrapper offset,
         final String[] arguments) throws IllegalArgumentException {
-        final IArgumentParser<?> rawParser = parsers.get(parserType);
-        if (rawParser == null) {
-            throw new IllegalStateException("Couldn't find parser '" + parserType.getName() + "'");
+        Reference<IArgumentParser<?>> rawParser = info.parser();
+        if (rawParser.isEmpty()) {
+            initParser(info);
         }
-        final A parser = parserType.cast(rawParser);
-        final Tuple tuple = parser.parse(type, offset.value(), arguments);
+        final A parser = parserType.cast(rawParser.get());
+        final Tuple tuple = parser.parse(info.type(), offset.value(), arguments, info.paramMap().get());
         offset.add((Integer) tuple.getSecond());
         return tuple.getFirst();
+    }
+
+    private void initParser(final ArgumentInfo info) {
+        IArgumentParser<?> parser = parsers.get(info.parserType());
+        if (parser == null) {
+            throw new IllegalStateException("Couldn't find parser '" + info.parserType().getName() + "'");
+        }
+        info.paramMap().set(new ParamMap(info.type(), parser, info.params())).lock();
+        info.parser().set(parser).lock();
     }
 
 }

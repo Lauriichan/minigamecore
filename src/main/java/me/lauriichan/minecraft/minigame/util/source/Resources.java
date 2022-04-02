@@ -213,5 +213,9 @@ public final class Resources {
     public FileSource file(File file) {
         return new FileSource(file);
     }
+    
+    public File folderData(String path) {
+        return new File(folder, path);
+    }
 
 }

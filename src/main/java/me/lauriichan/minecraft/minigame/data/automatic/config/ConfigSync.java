@@ -1,4 +1,4 @@
-package me.lauriichan.minecraft.minigame.config;
+package me.lauriichan.minecraft.minigame.data.automatic.config;
 
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
@@ -11,7 +11,7 @@ import com.syntaxphoenix.syntaxapi.utils.java.Primitives;
 
 import me.lauriichan.minecraft.minigame.util.JavaAccessor;
 
-final class ConfigSync {
+final class ConfigSync implements IConfigSync {
 
     private final Object instance;
 

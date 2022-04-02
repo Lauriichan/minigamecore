@@ -6,8 +6,8 @@ public abstract class Game {
 
     protected abstract void onLoad(Set<Class<? extends GamePhase>> phases);
 
-    protected abstract void onStart();
+    protected void onStart() {}
 
-    protected abstract void onStop();
+    protected void onStop() {}
 
 }
