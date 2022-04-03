@@ -11,5 +11,7 @@ import java.lang.annotation.Target;
 public @interface MessageId {
     
     String key();
+    
+    String[] fallback();
 
 }

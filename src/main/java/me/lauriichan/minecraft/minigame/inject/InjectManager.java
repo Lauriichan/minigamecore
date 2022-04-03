@@ -7,8 +7,11 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import me.lauriichan.minecraft.minigame.util.AnnotationTools;
 import me.lauriichan.minecraft.minigame.util.JavaAccessor;
 import me.lauriichan.minecraft.minigame.util.JavaInstance;
+import me.lauriichan.minecraft.minigame.util.source.DataSource;
+import me.lauriichan.minecraft.minigame.util.source.Resources;
 
 public class InjectManager {
 
@@ -18,9 +21,17 @@ public class InjectManager {
     public InjectManager(Logger logger) {
         this.logger = logger;
     }
-    
+
+    public boolean load(Resources resources) {
+        return load(resources.pathAnnotation(Constant.class));
+    }
+
+    public boolean load(DataSource source) {
+        return AnnotationTools.load(source, this::inject);
+    }
+
     public void listen(InjectListener listener) {
-        if(listeners.contains(listener)) {
+        if (listeners.contains(listener)) {
             return;
         }
         listeners.add(listener);

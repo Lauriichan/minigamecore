@@ -42,6 +42,14 @@ public abstract class Reloadable {
         update();
     }
 
+    public void remove() {
+        RELOAD.remove(this);
+        if (!saveOnExit) {
+            return;
+        }
+        save();
+    }
+
     public static void forceUpdateAll() {
         for (int index = 0; index < RELOAD.length(); index++) {
             RELOAD.get(index).forceUpdate();

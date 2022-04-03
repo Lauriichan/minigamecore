@@ -73,8 +73,18 @@ public final class MinigameCore {
         parserManager.load(getResources());
     }
 
-    public final void enable() {
+    public final void enable(final Runnable runnable) {
+        preEnable();
+        runnable.run();
+        postEnable();
+    }
+
+    public final void preEnable() {
         gameManager.load(getResources());
+    }
+
+    public final void postEnable() {
+        injectManager.load(getResources());
     }
 
     public final void disable(final Runnable runnable) {

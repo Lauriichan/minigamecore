@@ -20,11 +20,11 @@ final class MessageSync {
     public MessageSync(final Object instance, final Field field) {
         MessageId messageId = JavaAccessor.getAnnotation(field, MessageId.class);
         if (messageId == null) {
-            throw new IllegalArgumentException("Field needs @Message annotation");
+            throw new IllegalArgumentException("Field needs @MessageId annotation");
         }
         this.instance = instance;
         this.field = Objects.requireNonNull(field);
-        if (Objects.equals(field.getType(), String.class)) {
+        if (Objects.equals(field.getType(), Message.class)) {
             throw new IllegalArgumentException("Field is not of type String!");
         }
         this.handle = Modifier.isFinal(field.getModifiers()) ? null : JavaAccessor.accessField(field, true);
@@ -34,15 +34,9 @@ final class MessageSync {
             this.message = message;
             return;
         }
-        Object tmp;
-        if (_static) {
-            tmp = JavaAccessor.getStaticValue(handle);
-        } else {
-            tmp = JavaAccessor.getValue(instance, handle);
-        }
-        this.message = Message.register(messageId.key(), tmp.toString());
+        this.message = Message.register(messageId.key(), messageId.fallback());
     }
-    
+
     public Message getMessage() {
         return message;
     }
