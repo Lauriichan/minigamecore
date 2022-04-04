@@ -111,6 +111,7 @@ public final class GameManager implements InjectListener {
         if (holder != null && !games.containsValue(holder)) {
             return false;
         }
+        ticker.pause();
         if (activeId != null) {
             GameHolder current = games.get(activeId);
             if (current != null) {
@@ -124,20 +125,18 @@ public final class GameManager implements InjectListener {
         }
         if (holder == null) {
             activeId = null;
-            ticker.pause();
             return true;
         }
-        activeId = holder.getId();
         try {
             holder.getGame().onStart();
         } catch (Exception exception) {
             logger.log(Level.SEVERE, "Failed to start game '" + holder.getName() + "'!", exception);
             activeId = null;
-            ticker.pause();
             return false;
         }
-        ticker.start();
+        activeId = holder.getId();
         holder.setActive(true);
+        ticker.start();
         return true;
     }
 

@@ -54,11 +54,14 @@ public final class MinigameCore {
         JavaInstance.put(configManager);
         JavaInstance.put(gameManager);
     }
-
+    
     public final void load() {
         listenerManager.load(getResources());
         commandManager.load(getResources());
         parserManager.load(getResources());
+    }
+
+    public final void enable() {
         gameManager.load(getResources());
     }
 

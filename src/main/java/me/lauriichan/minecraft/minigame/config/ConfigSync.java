@@ -11,7 +11,7 @@ import com.syntaxphoenix.syntaxapi.utils.java.Primitives;
 
 import me.lauriichan.minecraft.minigame.util.JavaAccessor;
 
-final class ConfigSync {
+final class ConfigSync implements IConfigSync {
 
     private final Object instance;
 

@@ -11,3 +11,4 @@ public abstract class GamePhase {
     public abstract boolean nextPhase();
 
 }
+
