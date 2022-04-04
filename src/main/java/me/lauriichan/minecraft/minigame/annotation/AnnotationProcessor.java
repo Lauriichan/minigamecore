@@ -36,6 +36,7 @@ import me.lauriichan.minecraft.minigame.command.annotation.Command;
 import me.lauriichan.minecraft.minigame.command.annotation.Parser;
 import me.lauriichan.minecraft.minigame.game.Game;
 import me.lauriichan.minecraft.minigame.game.Minigame;
+import me.lauriichan.minecraft.minigame.inject.Constant;
 import me.lauriichan.minecraft.minigame.listener.Listener;
 import me.lauriichan.minecraft.minigame.util.JavaAccessor;
 
@@ -48,18 +49,21 @@ public final class AnnotationProcessor extends AbstractProcessor {
         Listener.class,
         Minigame.class,
         Command.class,
-        Parser.class
+        Parser.class,
+        Constant.class
     };
 
     private static final Class<?>[] NEEDED_FOR_ANNOTATION = new Class[] {
         null,
         Game.class,
         null,
-        IArgumentParser.class
+        IArgumentParser.class,
+        null
     };
 
     private static final ElementKind[] TARGET_ELEMENTS = new ElementKind[] {
         ElementKind.METHOD,
+        ElementKind.CLASS,
         ElementKind.CLASS,
         ElementKind.CLASS,
         ElementKind.CLASS
@@ -74,15 +78,23 @@ public final class AnnotationProcessor extends AbstractProcessor {
         },
         new Class[] {
             Command.class,
-            Parser.class
+            Parser.class,
+            Constant.class
         },
         new Class[] {
             Minigame.class,
-            Parser.class
+            Parser.class,
+            Constant.class
         },
         new Class[] {
             Command.class,
-            Minigame.class
+            Minigame.class,
+            Constant.class
+        },
+        new Class[] {
+            Minigame.class,
+            Command.class,
+            Parser.class
         }
     };
 

@@ -1,4 +1,4 @@
-package me.lauriichan.minecraft.minigame.config;
+package me.lauriichan.minecraft.minigame.data.automatic.config;
 
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;

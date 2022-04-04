@@ -15,8 +15,12 @@ public @interface Argument {
 
     Class<? extends IArgumentParser<?>> parser() default ObjectParser.class;
 
+    Param[] params() default {};
+
     int index() default 0;
-    
+
     boolean sender() default false;
+    
+    boolean optional() default false;
 
 }

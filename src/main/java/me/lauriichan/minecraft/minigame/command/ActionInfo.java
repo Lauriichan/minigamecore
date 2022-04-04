@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 
 import me.lauriichan.minecraft.minigame.command.annotation.Argument;
+import me.lauriichan.minecraft.minigame.command.annotation.Param;
 import me.lauriichan.minecraft.minigame.command.parser.ObjectParser;
 import me.lauriichan.minecraft.minigame.util.Checks;
 import me.lauriichan.minecraft.minigame.util.JavaAccessor;
@@ -30,13 +31,14 @@ final class ActionInfo {
             Parameter parameter = parameters[idx];
             Argument argument = JavaAccessor.getAnnotation(parameter, Argument.class);
             if (argument == null) {
-                arguments.add(new ArgumentInfo(this, ObjectParser.class, 0, parameter.getType(), false));
+                arguments.add(new ArgumentInfo(this, new Param[0], ObjectParser.class, 0, parameter.getType(), false, true));
                 continue;
             }
             if (senderFound && argument.sender()) {
                 throw new IllegalStateException("Action can't have two sender arguments!");
             }
-            arguments.add(new ArgumentInfo(this, argument.parser(), argument.index(), parameter.getType(), argument.sender()));
+            arguments.add(new ArgumentInfo(this, argument.params(), argument.parser(), argument.index(), parameter.getType(),
+                argument.sender(), argument.optional()));
         }
         this.arguments = Collections.unmodifiableList(arguments);
         final ArrayList<ArgumentInfo> sortedArguments = new ArrayList<>(arguments);
