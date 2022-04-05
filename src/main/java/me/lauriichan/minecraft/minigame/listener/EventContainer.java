@@ -13,7 +13,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.EventExecutor;
 
 import me.lauriichan.minecraft.minigame.game.GameManager;
-import me.lauriichan.minecraft.minigame.game.NullPhase;
 
 public final class EventContainer implements org.bukkit.event.Listener {
 
@@ -68,7 +67,7 @@ public final class EventContainer implements org.bukkit.event.Listener {
             if (!(event instanceof Cancellable)) {
                 for (int index = 0; index < actions.size(); index++) {
                     EventAction action = actions.get(index);
-                    if (action.getGamePhase() != NullPhase.class && action.getGamePhase() != game.getActivePhaseType()) {
+                    if (!action.isAllowed(game.getActivePhaseType())) {
                         continue;
                     }
                     action.call(event);
@@ -78,7 +77,7 @@ public final class EventContainer implements org.bukkit.event.Listener {
             Cancellable cancel = (Cancellable) event;
             for (int index = 0; index < actions.size(); index++) {
                 EventAction action = actions.get(index);
-                if (action.getGamePhase() != NullPhase.class && action.getGamePhase() != game.getActivePhaseType()) {
+                if (!action.isAllowed(game.getActivePhaseType())) {
                     continue;
                 }
                 if (action.ignoreCancelled() && cancel.isCancelled()) {

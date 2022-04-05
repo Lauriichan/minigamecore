@@ -10,7 +10,6 @@ import org.bukkit.event.EventHandler;
 
 import me.lauriichan.minecraft.minigame.annotation.AnnotationId;
 import me.lauriichan.minecraft.minigame.game.GamePhase;
-import me.lauriichan.minecraft.minigame.game.NullPhase;
 
 @Target(METHOD)
 @Retention(RUNTIME)
@@ -19,6 +18,8 @@ public @interface Listener {
     
     EventHandler handler() default @EventHandler;
 
-    Class<? extends GamePhase> phase() default NullPhase.class;
+    Class<? extends GamePhase>[] phase() default {};
+    
+    boolean blacklist() default false;
 
 }

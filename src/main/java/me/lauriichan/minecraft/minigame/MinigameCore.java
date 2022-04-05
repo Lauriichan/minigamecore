@@ -68,7 +68,6 @@ public final class MinigameCore {
     }
 
     public final void load() {
-        listenerManager.load(getResources());
         commandManager.load(getResources());
         parserManager.load(getResources());
     }
@@ -81,6 +80,7 @@ public final class MinigameCore {
 
     public final void preEnable() {
         gameManager.load(getResources());
+        listenerManager.load(getResources());
     }
 
     public final void postEnable() {
