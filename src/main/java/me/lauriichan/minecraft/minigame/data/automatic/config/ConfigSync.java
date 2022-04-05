@@ -85,6 +85,7 @@ final class ConfigSync implements IConfigSync {
         JavaAccessor.setValue(instance, handle, set);
     }
 
+    @SuppressWarnings("unchecked")
     private Object getValue(Object value) {
         if (value != null) {
             if (type.isAssignableFrom(value.getClass())) {
@@ -111,6 +112,13 @@ final class ConfigSync implements IConfigSync {
                     return BigDecimal.valueOf(number.doubleValue());
                 }
                 return fallback;
+            }
+            if (type.isEnum()) {
+                try {
+                    return Enum.valueOf(type.asSubclass(Enum.class), value.toString());
+                } catch (IllegalArgumentException iae) {
+                    return fallback;
+                }
             }
         }
         return fallback;
