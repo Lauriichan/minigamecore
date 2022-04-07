@@ -1,9 +1,11 @@
 package me.lauriichan.minecraft.minigame.data.config.yaml;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
 
 import me.lauriichan.minecraft.minigame.data.config.ISection;
 
@@ -77,11 +79,21 @@ public class YamlSection implements ISection<Object, Class<?>> {
 
     @Override
     public Object get(String path, Class<?> type) {
-        Object object = handle.get(path);
+        Object object = getFor(path, type);
         if (object == null || !type.isAssignableFrom(object.getClass())) {
             return null;
         }
         return object;
+    }
+
+    private Object getFor(String path, Class<?> type) {
+        if (List.class.isAssignableFrom(type)) {
+            return handle.getList(path);
+        }
+        if (ConfigurationSerializable.class.isAssignableFrom(type)) {
+            return handle.getSerializable(path, type.asSubclass(ConfigurationSerializable.class));
+        }
+        return handle.get(path);
     }
 
     @Override
