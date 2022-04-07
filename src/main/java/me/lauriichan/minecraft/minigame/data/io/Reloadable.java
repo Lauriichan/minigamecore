@@ -9,7 +9,7 @@ import me.lauriichan.minecraft.minigame.util.Reference;
 public abstract class Reloadable {
 
     @Config(key = "debug")
-    public static final boolean DEBUG = false;
+    public static boolean DEBUG = false;
 
     private static final DynamicArray<Reloadable> RELOAD = new DynamicArray<>();
     private static final Reference<Thread> THREAD = Reference.of();

@@ -3,6 +3,8 @@ package me.lauriichan.minecraft.minigame.listener;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import org.bukkit.event.Event;
@@ -21,6 +23,7 @@ public final class EventAction {
     private final Listener listener;
 
     private final boolean _static;
+    private final List<Class<? extends GamePhase>> phases;
 
     EventAction(EventListener parent, Method method, Listener listener) {
         if (method.getParameterCount() != 1) {
@@ -34,13 +37,14 @@ public final class EventAction {
             throw new IllegalStateException("Event type is not allowed to be abstract!");
         }
         this.listener = Objects.requireNonNull(listener);
+        this.phases = Arrays.asList(listener.phase());
         this.parent = parent;
         this.method = method;
         this.handle = JavaAccessor.accessMethod(method);
         this.eventType = type.asSubclass(Event.class);
         this._static = Modifier.isStatic(method.getModifiers());
     }
-    
+
     public boolean ignoreCancelled() {
         return listener.handler().ignoreCancelled();
     }
@@ -65,8 +69,15 @@ public final class EventAction {
         return listener;
     }
 
-    public Class<? extends GamePhase> getGamePhase() {
-        return listener.phase();
+    public List<Class<? extends GamePhase>> getPhases() {
+        return phases;
+    }
+
+    public boolean isAllowed(Class<? extends GamePhase> phase) {
+        if (phases.isEmpty()) {
+            return true;
+        }
+        return listener.blacklist() != phases.contains(phase);
     }
 
     public void call(Event event) {
