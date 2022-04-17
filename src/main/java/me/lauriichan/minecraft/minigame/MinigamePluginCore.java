@@ -15,7 +15,7 @@ public abstract class MinigamePluginCore extends JavaPlugin {
 
     @Override
     public final void onEnable() {
-        onCoreEnable();
+        core.enable(this::onCoreEnable);
     }
 
     @Override
