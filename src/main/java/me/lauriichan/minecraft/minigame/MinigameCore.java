@@ -9,9 +9,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import me.lauriichan.minecraft.minigame.command.CommandManager;
 import me.lauriichan.minecraft.minigame.command.ParserManager;
+import me.lauriichan.minecraft.minigame.data.CoreMessages;
 import me.lauriichan.minecraft.minigame.data.automatic.config.ConfigManager;
-import me.lauriichan.minecraft.minigame.data.automatic.message.Message;
-import me.lauriichan.minecraft.minigame.data.automatic.message.MessageManager;
+import me.lauriichan.minecraft.minigame.data.automatic.message.Text;
 import me.lauriichan.minecraft.minigame.data.io.IOManager;
 import me.lauriichan.minecraft.minigame.data.io.Reloadable;
 import me.lauriichan.minecraft.minigame.game.GameManager;
@@ -33,7 +33,6 @@ public final class MinigameCore {
 
     private final IOManager ioManager;
     private final ConfigManager configManager;
-    private final MessageManager messageManager;
 
     private final Logger logger;
 
@@ -51,7 +50,6 @@ public final class MinigameCore {
         this.commandManager = new CommandManager(plugin, parserManager, injectManager);
         this.ioManager = new IOManager(injectManager);
         this.configManager = new ConfigManager(this, injectManager);
-        this.messageManager = new MessageManager(this, injectManager);
         this.gameManager = new GameManager(logger, injectManager);
         this.listenerManager = new ListenerManager(plugin, gameManager, injectManager);
         JavaInstance.put(plugin);
@@ -61,9 +59,9 @@ public final class MinigameCore {
         JavaInstance.put(commandManager);
         JavaInstance.put(ioManager);
         JavaInstance.put(configManager);
-        JavaInstance.put(messageManager);
         JavaInstance.put(gameManager);
-        injectManager.inject(Message.class);
+        Text.setLogger(logger);
+        Text.load(CoreMessages.class);
         injectManager.inject(Reloadable.class);
     }
 
@@ -133,10 +131,6 @@ public final class MinigameCore {
 
     public final ConfigManager getConfigManager() {
         return configManager;
-    }
-
-    public final MessageManager getMessageManager() {
-        return messageManager;
     }
 
     public final GameManager getGameManager() {

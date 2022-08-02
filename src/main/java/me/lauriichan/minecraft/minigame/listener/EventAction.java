@@ -10,7 +10,7 @@ import java.util.Objects;
 import org.bukkit.event.Event;
 
 import me.lauriichan.minecraft.minigame.game.GamePhase;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 
 public final class EventAction {
 
@@ -40,7 +40,7 @@ public final class EventAction {
         this.phases = Arrays.asList(listener.phase());
         this.parent = parent;
         this.method = method;
-        this.handle = JavaAccessor.accessMethod(method);
+        this.handle = JavaAccess.accessMethod(method);
         this.eventType = type.asSubclass(Event.class);
         this._static = Modifier.isStatic(method.getModifiers());
     }
@@ -82,10 +82,10 @@ public final class EventAction {
 
     public void call(Event event) {
         if (_static) {
-            JavaAccessor.invokeStatic(handle, event);
+            JavaAccess.invokeStatic(handle, event);
             return;
         }
-        JavaAccessor.invoke(parent.getInstance(), handle, event);
+        JavaAccess.invoke(parent.getInstance(), handle, event);
     }
 
 }

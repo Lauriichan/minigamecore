@@ -12,22 +12,21 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 
 import sun.misc.Unsafe;
 
-public final class JavaAccessor {
+public final class JavaAccess {
 
-    private static final JavaAccessor INSTANCE = new JavaAccessor();
-
-    private final AccessUnsuccessful unsuccessful = new AccessUnsuccessful();
+    private static final JavaAccess INSTANCE = new JavaAccess();
 
     private Unsafe unsafe;
     private Lookup lookup;
 
-    private JavaAccessor() {
+    private JavaAccess() {
         final Optional<Class<?>> option = JavaTracker.getCallerClass();
-        if (option.isEmpty() || option.get() != JavaAccessor.class) {
+        if (option.isEmpty() || option.get() != JavaAccess.class) {
             throw new UnsupportedOperationException("Utility class");
         }
     }
@@ -61,22 +60,29 @@ public final class JavaAccessor {
             return null;
         }
         try {
-            if (!Modifier.isStatic(method.getModifiers())) {
-                if (instance == null) {
-                    return null;
-                }
-                if (arguments.length == 0) {
-                    return lookup().unreflect(method).invokeWithArguments(instance);
-                }
-                final Object[] input = new Object[arguments.length + 1];
-                input[0] = instance;
-                System.arraycopy(arguments, 0, input, 1, arguments.length);
-                return lookup().unreflect(method).invokeWithArguments(input);
-            }
-            return lookup().unreflect(method).invokeWithArguments(arguments);
+            return executeThrows(instance, method, arguments);
         } catch (final Throwable e) {
             return null;
         }
+    }
+
+    public Object executeThrows(final Object instance, final Method method, final Object... arguments) throws Throwable {
+        if (method == null || method.getParameterCount() != arguments.length) {
+            return null;
+        }
+        if (!Modifier.isStatic(method.getModifiers())) {
+            if (instance == null) {
+                return null;
+            }
+            if (arguments.length == 0) {
+                return lookup().unreflect(method).invokeWithArguments(instance);
+            }
+            final Object[] input = new Object[arguments.length + 1];
+            input[0] = instance;
+            System.arraycopy(arguments, 0, input, 1, arguments.length);
+            return lookup().unreflect(method).invokeWithArguments(input);
+        }
+        return lookup().unreflect(method).invokeWithArguments(arguments);
     }
 
     public Object init(final Constructor<?> constructor, final Object... arguments) {
@@ -187,7 +193,7 @@ public final class JavaAccessor {
             }
             return handle.getVolatile(instance);
         } catch (final Throwable e) {
-            throw unsuccessful;
+            throw new AccessUnsuccessful();
         }
     }
 
@@ -202,7 +208,7 @@ public final class JavaAccessor {
             }
             handle.setVolatile(instance, value);
         } catch (final Throwable e) {
-            throw unsuccessful;
+            throw new AccessUnsuccessful();
         }
     }
 
@@ -215,9 +221,9 @@ public final class JavaAccessor {
             return null;
         }
         try {
-            return lookup().unreflectGetter(field).invoke(instance);
+            return lookup().unreflectVarHandle(field).get(instance);
         } catch (final Throwable e) {
-            throw unsuccessful;
+            throw new AccessUnsuccessful();
         }
     }
 
@@ -226,33 +232,33 @@ public final class JavaAccessor {
             return null;
         }
         try {
-            return lookup().unreflectGetter(field).invoke();
+            return lookup().unreflectVarHandle(field).get();
         } catch (final Throwable e) {
-            throw unsuccessful;
+            throw new AccessUnsuccessful();
         }
     }
 
     public void setObjectValueSafe(final Object instance, final Field field, final Object value) {
-        if (instance == null || field == null || value != null && !field.getType().isAssignableFrom(value.getClass())) {
+        if (instance == null || field == null) {
             return;
         }
         unfinalize(field);
         try {
-            lookup().unreflectSetter(field).invokeWithArguments(instance, value);
+            lookup().unreflectVarHandle(field).set(instance, value);
         } catch (final Throwable e) {
-            throw unsuccessful;
+            throw new AccessUnsuccessful();
         }
     }
 
     public void setStaticValueSafe(final Field field, final Object value) {
-        if (field == null || value != null && !field.getType().isAssignableFrom(value.getClass())) {
+        if (field == null) {
             return;
         }
         unfinalize(field);
         try {
-            lookup().unreflectSetter(field).invokeWithArguments(value);
+            lookup().unreflectVarHandle(field).set(value);
         } catch (final Throwable e) {
-            throw unsuccessful;
+            throw new AccessUnsuccessful();
         }
     }
 
@@ -286,9 +292,7 @@ public final class JavaAccessor {
             unsafe.putObject(instance, unsafe.objectFieldOffset(field), null);
             return;
         }
-        if (field.getType().isAssignableFrom(value.getClass())) {
-            unsafe.putObject(instance, unsafe.objectFieldOffset(field), field.getType().cast(value));
-        }
+        unsafe.putObject(instance, unsafe.objectFieldOffset(field), field.getType().cast(value));
     }
 
     public void setStaticValueUnsafe(final Field field, final Object value) {
@@ -301,9 +305,7 @@ public final class JavaAccessor {
             unsafe.putObject(unsafe.staticFieldBase(field), unsafe.staticFieldOffset(field), null);
             return;
         }
-        if (field.getType().isAssignableFrom(value.getClass())) {
-            unsafe.putObject(unsafe.staticFieldBase(field), unsafe.staticFieldOffset(field), field.getType().cast(value));
-        }
+        unsafe.putObject(unsafe.staticFieldBase(field), unsafe.staticFieldOffset(field), field.getType().cast(value));
     }
 
     /*
@@ -369,6 +371,10 @@ public final class JavaAccessor {
 
     public static Object invoke(final Object instance, final Method method, final Object... arguments) {
         return INSTANCE.execute(instance, method, arguments);
+    }
+
+    public static Object invokeThrows(final Object instance, final Method method, final Object... arguments) throws Throwable {
+        return INSTANCE.executeThrows(instance, method, arguments);
     }
 
     // Setter
@@ -496,6 +502,14 @@ public final class JavaAccessor {
      * Static Utilities
      */
 
+    public static String getClassName(final Class<?> clazz) {
+        final String name = clazz.getSimpleName();
+        if (name.contains(".")) {
+            return name.split("\\.")[0];
+        }
+        return name;
+    }
+
     public static Field getField(final Class<?> clazz, final String field) {
         if (clazz == null || field == null) {
             return null;
@@ -517,7 +531,29 @@ public final class JavaAccessor {
         final HashSet<Field> fields = new HashSet<>();
         Collections.addAll(fields, field0);
         Collections.addAll(fields, field1);
-        return fields.toArray(Field[]::new);
+        return fields.toArray(new Field[fields.size()]);
+    }
+
+    public static Field getStaticField(final Class<?> clazz, final Class<?> returnType) {
+        return getField(clazz, true, returnType);
+    }
+
+    public static Field getDeclaredField(final Class<?> clazz, final Class<?> returnType) {
+        return getField(clazz, false, returnType);
+    }
+
+    public static Field getField(final Class<?> clazz, final boolean isStatic, final Class<?> returnType) {
+        if (clazz == null) {
+            return null;
+        }
+        final Field[] fields = getFields(clazz);
+        for (final Field field : fields) {
+            if (Modifier.isStatic(field.getModifiers()) != isStatic || !field.getType().equals(returnType)) {
+                continue;
+            }
+            return field;
+        }
+        return null;
     }
 
     public static Method getMethod(final Class<?> clazz, final String method, final Class<?>... arguments) {
@@ -541,7 +577,51 @@ public final class JavaAccessor {
         final HashSet<Method> methods = new HashSet<>();
         Collections.addAll(methods, method0);
         Collections.addAll(methods, method1);
-        return methods.toArray(Method[]::new);
+        return methods.toArray(new Method[methods.size()]);
+    }
+
+    public static Method getDeclaredMethod(final Class<?> clazz, final Class<?> returnType, final Class<?>... arguments) {
+        return getMethod(clazz, false, returnType, Collections.emptyList(), arguments);
+    }
+
+    public static Method getDeclaredMethod(final Class<?> clazz, final Class<?> returnType, final List<String> blacklisted,
+        final Class<?>... arguments) {
+        return getMethod(clazz, false, returnType, blacklisted, arguments);
+    }
+
+    public static Method getStaticMethod(final Class<?> clazz, final Class<?> returnType, final Class<?>... arguments) {
+        return getMethod(clazz, true, returnType, Collections.emptyList(), arguments);
+    }
+
+    public static Method getStaticMethod(final Class<?> clazz, final Class<?> returnType, final List<String> blacklisted,
+        final Class<?>... arguments) {
+        return getMethod(clazz, true, returnType, blacklisted, arguments);
+    }
+
+    public static Method getMethod(final Class<?> clazz, final boolean isStatic, final Class<?> returnType, final List<String> blacklisted,
+        final Class<?>... arguments) {
+        if (clazz == null) {
+            return null;
+        }
+        final Method[] methods = getMethods(clazz);
+        mainLoop:
+        for (final Method method : methods) {
+            if (Modifier.isStatic(method.getModifiers()) != isStatic || !method.getReturnType().equals(returnType)
+                || blacklisted.contains(method.getName())) {
+                continue;
+            }
+            final Class<?>[] parameters = method.getParameterTypes();
+            if (parameters.length != arguments.length) {
+                continue;
+            }
+            for (int index = 0; index < parameters.length; index++) {
+                if (!parameters[index].isAssignableFrom(arguments[index])) {
+                    continue mainLoop;
+                }
+            }
+            return method;
+        }
+        return null;
     }
 
     public static Constructor<?> getConstructor(final Class<?> clazz, final Class<?>... arguments) {
@@ -565,11 +645,11 @@ public final class JavaAccessor {
         final HashSet<Constructor<?>> constructors = new HashSet<>();
         Collections.addAll(constructors, constructor0);
         Collections.addAll(constructors, constructor1);
-        return constructors.toArray(Constructor[]::new);
+        return constructors.toArray(new Constructor[constructors.size()]);
 
     }
 
-    public static Class<?> getClass(final String name) {
+    public static Class<?> findClass(final String name) {
         try {
             return Class.forName(name);
         } catch (final ClassNotFoundException | LinkageError e) {
@@ -577,7 +657,7 @@ public final class JavaAccessor {
         }
     }
 
-    public static Class<?> getClass(final Class<?> clazz, final String name) {
+    public static Class<?> findClass(final Class<?> clazz, final String name) {
         if (clazz == null || name == null) {
             return null;
         }

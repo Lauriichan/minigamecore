@@ -1,34 +1,32 @@
 package me.lauriichan.minecraft.minigame.data.automatic.config;
 
-import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
 
+import org.bukkit.configuration.file.YamlConfiguration;
+
 import com.syntaxphoenix.syntaxapi.utils.java.Primitives;
 
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 
 final class ConfigSync implements IConfigSync {
 
     private final Object instance;
 
     private final Field field;
-    private final VarHandle handle;
 
     private final String path;
     private final String key;
 
     private final Object fallback;
-    private final boolean _static;
 
     private final Class<?> type;
     private final boolean typeNumber;
 
     public ConfigSync(final Object instance, final Field field) {
-        Config config = JavaAccessor.getAnnotation(field, Config.class);
+        Config config = JavaAccess.getAnnotation(field, Config.class);
         if (config == null) {
             throw new IllegalArgumentException("Field needs @Config annotation");
         }
@@ -38,13 +36,7 @@ final class ConfigSync implements IConfigSync {
         this.field = Objects.requireNonNull(field);
         this.type = field.getType();
         this.typeNumber = Number.class.isAssignableFrom(type);
-        this.handle = JavaAccessor.accessField(field, true);
-        Object tmp;
-        if (_static = Modifier.isStatic(field.getModifiers())) {
-            tmp = JavaAccessor.getStaticValue(handle);
-        } else {
-            tmp = JavaAccessor.getValue(instance, handle);
-        }
+        Object tmp = JavaAccess.getValue(instance, field);
         this.fallback = tmp;
     }
 
@@ -68,47 +60,45 @@ final class ConfigSync implements IConfigSync {
         return type;
     }
 
-    public VarHandle getHandle() {
-        return handle;
-    }
-
     public Object getInstance() {
         return instance;
     }
 
+    @Override
+    public boolean setFallback(YamlConfiguration configuration, String key) {
+        configuration.set(key, fallback);
+        return false;
+    }
+
     public void update(Object value) {
-        Object set = getValue(value);
-        if (_static) {
-            JavaAccessor.setStaticValue(handle, set);
-            return;
-        }
-        JavaAccessor.setValue(instance, handle, set);
+        JavaAccess.setValue(instance, field, getValue(value));
     }
 
     @SuppressWarnings("unchecked")
     private Object getValue(Object value) {
         if (value != null) {
-            if (type.isAssignableFrom(value.getClass())) {
+            Class<?> typeComplex = Primitives.fromPrimitive(type);
+            Class<?> complex = Primitives.fromPrimitive(value.getClass());
+            if (typeComplex == complex || typeComplex.isAssignableFrom(complex)) {
                 return value;
             }
             if (Number.class.isAssignableFrom(value.getClass()) && typeNumber) {
-                Class<?> complex = Primitives.fromPrimitive(type);
                 Number number = (Number) value;
-                if (complex == Byte.class) {
+                if (typeComplex == Byte.class) {
                     return number.byteValue();
-                } else if (complex == Short.class) {
+                } else if (typeComplex == Short.class) {
                     return number.shortValue();
-                } else if (complex == Integer.class) {
+                } else if (typeComplex == Integer.class) {
                     return number.intValue();
-                } else if (complex == Long.class) {
+                } else if (typeComplex == Long.class) {
                     return number.longValue();
-                } else if (complex == Float.class) {
+                } else if (typeComplex == Float.class) {
                     return number.floatValue();
-                } else if (complex == Double.class) {
+                } else if (typeComplex == Double.class) {
                     return number.doubleValue();
-                } else if (complex == BigInteger.class) {
+                } else if (typeComplex == BigInteger.class) {
                     return BigInteger.valueOf(number.longValue());
-                } else if (complex == BigDecimal.class) {
+                } else if (typeComplex == BigDecimal.class) {
                     return BigDecimal.valueOf(number.doubleValue());
                 }
                 return fallback;

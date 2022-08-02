@@ -19,9 +19,10 @@ public interface IArgumentParser<E> {
         return tuple.getSecond();
     }
 
-    default void suggest(List<String> list, Tuple<E, Integer> tuple, Class<?> type, int offset, String[] arguments, ParamMap params) {}
+    default void suggest(final List<String> list, final Tuple<E, Integer> tuple, final Class<?> type, final int offset,
+        final String[] arguments, final ParamMap params) {}
 
-    default Object readParam(Class<?> type, String name, StringReader reader) {
+    default Object readParam(final Class<?> type, final String name, final StringReader reader) {
         return null;
     }
 

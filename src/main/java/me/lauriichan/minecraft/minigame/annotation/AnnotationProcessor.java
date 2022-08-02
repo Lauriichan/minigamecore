@@ -38,7 +38,7 @@ import me.lauriichan.minecraft.minigame.game.Game;
 import me.lauriichan.minecraft.minigame.game.Minigame;
 import me.lauriichan.minecraft.minigame.inject.Constant;
 import me.lauriichan.minecraft.minigame.listener.Listener;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 
 @SuppressWarnings("unchecked")
 public final class AnnotationProcessor extends AbstractProcessor {
@@ -72,7 +72,6 @@ public final class AnnotationProcessor extends AbstractProcessor {
     private static final String[] NAMES = new String[ANNOTATIONS.length];
 
     private static final Class<? extends Annotation>[][] INCOMPATIBLE = new Class[][] {
-        null,
         new Class[] {
             Action.class
         },
@@ -87,8 +86,8 @@ public final class AnnotationProcessor extends AbstractProcessor {
             Constant.class
         },
         new Class[] {
-            Command.class,
             Minigame.class,
+            Command.class,
             Constant.class
         },
         new Class[] {
@@ -115,7 +114,7 @@ public final class AnnotationProcessor extends AbstractProcessor {
             Class<? extends Annotation> annotationClass = ANNOTATIONS[index];
             paths.put(annotationClass, new HashSet<>());
             annotationType[index] = elements.getTypeElement(annotationClass.getName()).asType();
-            AnnotationId id = JavaAccessor.getAnnotation(annotationClass, AnnotationId.class);
+            AnnotationId id = JavaAccess.getAnnotation(annotationClass, AnnotationId.class);
             if (id == null) {
                 NAMES[index] = annotationClass.getSimpleName();
                 continue;
@@ -140,12 +139,12 @@ public final class AnnotationProcessor extends AbstractProcessor {
             return false;
         }
         for (int index = 0; index < annotationType.length; index++) {
-            Class<? extends Annotation>[] incompatible = INCOMPATIBLE[index];
-            Class<? extends Annotation> annotation = ANNOTATIONS[index];
+            final Class<? extends Annotation>[] incompatible = INCOMPATIBLE[index];
+            final Class<? extends Annotation> annotation = ANNOTATIONS[index];
             log(Kind.NOTE, "Processing @%s", annotation.getSimpleName());
-            Class<?> target = NEEDED_FOR_ANNOTATION[index];
-            ElementKind kind = TARGET_ELEMENTS[index];
-            ArrayList<Element[]> elementArrays = new ArrayList<>();
+            final Class<?> target = NEEDED_FOR_ANNOTATION[index];
+            final ElementKind kind = TARGET_ELEMENTS[index];
+            final ArrayList<Element[]> elementArrays = new ArrayList<>();
             elementArrays.add(roundEnv.getElementsAnnotatedWith(annotation).stream().filter(element -> {
                 if (element.getKind() != kind) {
                     return false;
@@ -153,7 +152,7 @@ public final class AnnotationProcessor extends AbstractProcessor {
                 if (incompatible == null) {
                     return true;
                 }
-                for (Class<?> incompatibleAnnotation : incompatible) {
+                for (final Class<?> incompatibleAnnotation : incompatible) {
                     if (hasAnnotation(element, incompatibleAnnotation)) {
                         return false;
                     }
@@ -161,30 +160,30 @@ public final class AnnotationProcessor extends AbstractProcessor {
                 return true;
             }).toArray(Element[]::new));
             lb_annotationLoop:
-            for (TypeElement annotationType : annotations) {
+            for (final TypeElement annotationType : annotations) {
                 if (!hasAnnotation(annotationType, annotation)) {
                     continue;
                 }
                 if (incompatible != null) {
-                    for (Class<?> incompatibleAnnotation : incompatible) {
+                    for (final Class<?> incompatibleAnnotation : incompatible) {
                         if (hasAnnotation(annotationType, incompatibleAnnotation)) {
                             continue lb_annotationLoop;
                         }
                     }
                 }
-                elementArrays.add(roundEnv.getElementsAnnotatedWith(annotationType).toArray(Element[]::new));
+                elementArrays.add(roundEnv.getElementsAnnotatedWith(annotationType).toArray(new Element[0]));
             }
-            HashSet<String> path = paths.get(annotation);
-            for (Element[] elements : elementArrays) {
+            final HashSet<String> path = paths.get(annotation);
+            for (final Element[] elements : elementArrays) {
                 if (kind != ElementKind.CLASS || target == null) {
-                    for (Element element : elements) {
+                    for (final Element element : elements) {
                         processElement(path, element, annotation);
                     }
                     continue;
                 }
-                TypeMirror mirror = this.elements.getTypeElement(target.getName()).asType();
-                boolean interf = target.isInterface();
-                for (Element element : elements) {
+                final TypeMirror mirror = this.elements.getTypeElement(target.getName()).asType();
+                final boolean interf = target.isInterface();
+                for (final Element element : elements) {
                     if (!(element instanceof TypeElement)) {
                         continue;
                     }
@@ -195,30 +194,30 @@ public final class AnnotationProcessor extends AbstractProcessor {
         log(Kind.NOTE, "Writing information...");
         try {
             for (int index = 0; index < ANNOTATIONS.length; index++) {
-                Class<? extends Annotation> clazz = ANNOTATIONS[index];
-                String className = NAMES[index];
-                HashSet<String> set = paths.get(clazz);
+                final Class<? extends Annotation> clazz = ANNOTATIONS[index];
+                final String className = NAMES[index];
+                final HashSet<String> set = paths.get(clazz);
                 if (set.isEmpty()) {
                     continue;
                 }
-                FileObject file = processingEnv.getFiler().createResource(StandardLocation.CLASS_OUTPUT, "",
+                final FileObject file = processingEnv.getFiler().createResource(StandardLocation.CLASS_OUTPUT, "",
                     ANNOTATION_RESOURCE + className);
                 try (Writer writer = file.openWriter()) {
-                    for (String path : set) {
+                    for (final String path : set) {
                         writer.append(path);
                         writer.append('\n');
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             log(Kind.ERROR, Exceptions.stackTraceToString(e));
         }
         return false;
     }
 
-    private void processElement(HashSet<String> path, Element element, Class<? extends Annotation> annotation) {
+    private void processElement(final HashSet<String> path, final Element element, final Class<? extends Annotation> annotation) {
         if (element instanceof ExecutableElement) {
-            ExecutableElement executable = (ExecutableElement) element;
+            final ExecutableElement executable = (ExecutableElement) element;
             if (executable.getModifiers().contains(Modifier.ABSTRACT)) {
                 log(Kind.WARNING, "Cannot have an abstract modifier on element '%s' with annotation '%s'!", executable.toString(),
                     annotation.getSimpleName());
@@ -234,7 +233,7 @@ public final class AnnotationProcessor extends AbstractProcessor {
             return;
         }
         if (element instanceof VariableElement) {
-            VariableElement variable = (VariableElement) element;
+            final VariableElement variable = (VariableElement) element;
             path.add(variable.getEnclosingElement().toString());
             log(Kind.NOTE, "Found annotation '%s' in '%s'", annotation.getSimpleName(), variable.getEnclosingElement().toString());
             return;
@@ -242,7 +241,7 @@ public final class AnnotationProcessor extends AbstractProcessor {
         if (!(element instanceof TypeElement)) {
             return;
         }
-        TypeElement type = (TypeElement) element;
+        final TypeElement type = (TypeElement) element;
         if (type.getModifiers().contains(Modifier.ABSTRACT)) {
             log(Kind.WARNING, "Cannot have an abstract modifier on element '%s' with annotation '%s'!", type.toString(),
                 annotation.getSimpleName());
@@ -252,10 +251,10 @@ public final class AnnotationProcessor extends AbstractProcessor {
         log(Kind.NOTE, "Found annotation '%s' in '%s'", annotation.getSimpleName(), type.toString());
     }
 
-    private void processTypeElement(HashSet<String> path, TypeElement type, boolean interf, TypeMirror mirror,
-        Class<? extends Annotation> annotation) {
+    private void processTypeElement(final HashSet<String> path, final TypeElement type, final boolean interf, final TypeMirror mirror,
+        final Class<? extends Annotation> annotation) {
         if (interf) {
-            if (!isInterfaceNested(type.getInterfaces(), mirror)) {
+            if (!isInterfaceNested(type.getInterfaces(), name(mirror))) {
                 log(Kind.WARNING, "Found annotation '%s' in '%s' without interface '%s'!", annotation.getSimpleName(), type.toString(),
                     mirror.toString());
                 return;
@@ -264,7 +263,7 @@ public final class AnnotationProcessor extends AbstractProcessor {
             log(Kind.NOTE, "Found annotation '%s' in '%s'", annotation.getSimpleName(), type.toString());
             return;
         }
-        if (!isSuperclassNested(type.getSuperclass(), mirror)) {
+        if (!isSuperclassNested(type.getSuperclass(), name(mirror))) {
             log(Kind.WARNING, "Found annotation '%s' on '%s' without superclass '%s'!", annotation.getSimpleName(), type.toString(),
                 mirror.toString());
             return;
@@ -277,12 +276,16 @@ public final class AnnotationProcessor extends AbstractProcessor {
      * Helpers
      */
 
-    public boolean isInterfaceNested(List<? extends TypeMirror> list, TypeMirror searched) {
-        for (TypeMirror mirror : list) {
-            if (mirror == searched) {
+    public String name(final TypeMirror mirror) {
+        return mirror.toString().split("\\<")[0];
+    }
+
+    public boolean isInterfaceNested(final List<? extends TypeMirror> list, final String searched) {
+        for (final TypeMirror mirror : list) {
+            if (name(mirror).equals(searched)) {
                 return true;
             }
-            Element element = types.asElement(mirror);
+            final Element element = types.asElement(mirror);
             if (!(element instanceof TypeElement) || !isInterfaceNested(((TypeElement) element).getInterfaces(), searched)) {
                 continue;
             }
@@ -291,12 +294,12 @@ public final class AnnotationProcessor extends AbstractProcessor {
         return false;
     }
 
-    public boolean isSuperclassNested(TypeMirror superClass, TypeMirror searched) {
+    public boolean isSuperclassNested(final TypeMirror superClass, final String searched) {
         if (superClass == null) {
             return false;
         }
-        if (superClass != searched) {
-            Element element = types.asElement(superClass);
+        if (!name(superClass).equals(searched)) {
+            final Element element = types.asElement(superClass);
             if (!(element instanceof TypeElement)) {
                 return false;
             }
@@ -305,13 +308,13 @@ public final class AnnotationProcessor extends AbstractProcessor {
         return true;
     }
 
-    public boolean hasAnnotation(Element element, Class<?> annotation) {
+    public boolean hasAnnotation(final Element element, final Class<?> annotation) {
         return getAnnotationMirror(element, annotation) != null;
     }
 
-    public AnnotationMirror getAnnotationMirror(Element element, Class<?> annotation) {
-        String annotationName = annotation.getName();
-        for (AnnotationMirror mirror : element.getAnnotationMirrors()) {
+    public AnnotationMirror getAnnotationMirror(final Element element, final Class<?> annotation) {
+        final String annotationName = annotation.getName();
+        for (final AnnotationMirror mirror : element.getAnnotationMirrors()) {
             if (mirror.getAnnotationType().toString().equals(annotationName)) {
                 return mirror;
             }
@@ -319,8 +322,8 @@ public final class AnnotationProcessor extends AbstractProcessor {
         return null;
     }
 
-    public void log(Kind kind, String message, Object... arguments) {
-        String out = String.format(message, arguments);
+    public void log(final Kind kind, final String message, final Object... arguments) {
+        final String out = String.format(message, arguments);
         processingEnv.getMessager().printMessage(kind, out);
         if (kind == Kind.ERROR) {
             System.out.println("[ERROR] " + out);

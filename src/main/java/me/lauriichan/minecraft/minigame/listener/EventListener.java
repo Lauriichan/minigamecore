@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 import me.lauriichan.minecraft.minigame.inject.InjectManager;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 
 public final class EventListener {
 
@@ -17,7 +17,7 @@ public final class EventListener {
 
     EventListener(final InjectManager inject, final Class<?> type) {
         this.type = Objects.requireNonNull(type);
-        Method[] methods = JavaAccessor.getMethods(type);
+        Method[] methods = JavaAccess.getMethods(type);
         Object tmp = null;
         ArrayList<EventAction> actions = new ArrayList<>();
         for (Method method : methods) {
@@ -25,14 +25,14 @@ public final class EventListener {
                 continue;
             }
             if (Modifier.isStatic(method.getModifiers())) {
-                Listener listener = JavaAccessor.getAnnotation(method, Listener.class);
+                Listener listener = JavaAccess.getAnnotation(method, Listener.class);
                 if (listener == null) {
                     continue;
                 }
                 actions.add(new EventAction(this, method, listener));
                 continue;
             }
-            Listener listener = JavaAccessor.getAnnotation(method, Listener.class);
+            Listener listener = JavaAccess.getAnnotation(method, Listener.class);
             if (listener == null) {
                 continue;
             }

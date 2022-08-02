@@ -21,7 +21,7 @@ public final class JavaInstance {
         }
         for (int index = 0; index < TYPES.size(); index++) {
             Class<?> type = TYPES.get(index);
-            if (!type.isAssignableFrom(clazz)) {
+            if (!clazz.isAssignableFrom(type)) {
                 continue;
             }
             return clazz.cast(INSTANCES.get(type));
@@ -63,7 +63,7 @@ public final class JavaInstance {
     }
 
     public static <E> E initialize(Class<E> clazz) {
-        Constructor<?>[] constructors = JavaAccessor.getConstructors(clazz);
+        Constructor<?>[] constructors = JavaAccess.getConstructors(clazz);
         final Class<?>[] arguments = TYPES.toArray(Class[]::new);
         final int max = arguments.length;
         Constructor<?> builder = null;
@@ -82,7 +82,7 @@ public final class JavaInstance {
             int tmpArgs = 0;
             for (int index = 0; index < count; index++) {
                 for (int idx = 0; idx < max; idx++) {
-                    if (!types[index].equals(arguments[idx])) {
+                    if (!types[index].isAssignableFrom(arguments[idx])) {
                         continue;
                     }
                     tmpIdx[idx] = index;
@@ -100,7 +100,7 @@ public final class JavaInstance {
             return null;
         }
         if (args == 0) {
-            return clazz.cast(JavaAccessor.instance(builder));
+            return clazz.cast(JavaAccess.instance(builder));
         }
         final Object[] parameters = new Object[args];
         for (int idx = 0; idx < max; idx++) {
@@ -109,7 +109,7 @@ public final class JavaInstance {
             }
             parameters[argIdx[idx]] = get(arguments[idx]);
         }
-        return clazz.cast(JavaAccessor.instance(builder, parameters));
+        return clazz.cast(JavaAccess.instance(builder, parameters));
     }
 
 }

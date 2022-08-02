@@ -17,7 +17,7 @@ public final class JavaTracker {
         if (element == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(JavaAccessor.getClass(element.getClassName()));
+        return Optional.ofNullable(JavaAccess.findClass(element.getClassName()));
     }
 
     public static Optional<Class<?>> getCallerClass() {

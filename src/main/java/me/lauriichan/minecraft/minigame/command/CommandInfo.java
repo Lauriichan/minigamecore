@@ -10,9 +10,9 @@ import java.util.Map;
 import me.lauriichan.minecraft.minigame.command.annotation.Action;
 import me.lauriichan.minecraft.minigame.command.annotation.Command;
 import me.lauriichan.minecraft.minigame.util.Checks;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 
-final class CommandInfo {
+public final class CommandInfo {
 
     private final String name;
     private final String description;
@@ -30,11 +30,11 @@ final class CommandInfo {
         this.name = Checks.isNotBlank(Checks.isNotNull(command).name().toLowerCase().replace(" ", ""), "Command name can't be blank");
         this.description = command.description();
         final ArrayList<String> aliases = new ArrayList<>();
-        for (String alias : command.aliases()) {
-            if (alias == null || alias.isBlank()) {
+        for (final String alias : command.aliases()) {
+            if (alias == null || alias.trim().isEmpty()) {
                 continue;
             }
-            String value = alias.toLowerCase().replace(" ", "");
+            final String value = alias.toLowerCase().replace(" ", "");
             if (value.isEmpty()) {
                 continue;
             }
@@ -42,22 +42,22 @@ final class CommandInfo {
         }
         this.aliases = aliases;
         final HashMap<String, ActionInfo> actionMap = new HashMap<>();
-        final Method[] methods = JavaAccessor.getMethods(owner);
+        final Method[] methods = JavaAccess.getMethods(owner);
         int pathDepth = 0;
         for (int index = 0; index < methods.length; index++) {
-            Method method = methods[index];
-            Action[] actions = JavaAccessor.getAnnotations(method, Action.class);
+            final Method method = methods[index];
+            final Action[] actions = JavaAccess.getAnnotations(method, Action.class);
             if (actions.length == 0) {
                 continue;
             }
-            ActionInfo info = new ActionInfo(this, method);
+            final ActionInfo info = new ActionInfo(this, method);
             for (int idx = 0; idx < actions.length; idx++) {
-                String path = despacePath(actions[idx].path());
+                final String path = despacePath(actions[idx].path());
                 if (actionMap.containsKey(path)) {
                     continue;
                 }
                 actionMap.put(path, info);
-                int depth = resolveDepth(path);
+                final int depth = resolveDepth(path);
                 if (depth > pathDepth) {
                     pathDepth = depth;
                 }
@@ -71,11 +71,11 @@ final class CommandInfo {
         if (!(path = path.trim()).contains(" ")) {
             return path;
         }
-        String[] parts = path.split(" ");
-        StringBuilder output = new StringBuilder();
+        final String[] parts = path.split(" ");
+        final StringBuilder output = new StringBuilder();
         for (int i = 0; i < parts.length; i++) {
-            String part = parts[i];
-            if (part.isBlank()) {
+            final String part = parts[i];
+            if (part.trim().isEmpty()) {
                 continue;
             }
             output.append(part);
@@ -86,7 +86,7 @@ final class CommandInfo {
         return output.toString().toLowerCase();
     }
 
-    private int resolveDepth(String path) {
+    private int resolveDepth(final String path) {
         if (path.isEmpty()) {
             return 0;
         }
@@ -95,7 +95,7 @@ final class CommandInfo {
         }
         return path.split(" ").length;
     }
-    
+
     public Object instance() {
         return instance;
     }

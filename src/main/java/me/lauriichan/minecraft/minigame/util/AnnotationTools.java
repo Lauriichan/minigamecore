@@ -20,7 +20,7 @@ public final class AnnotationTools {
             BufferedReader reader = source.openBufferedReader();
             String classPath;
             while ((classPath = reader.readLine()) != null) {
-                Class<?> clazz = JavaAccessor.getClass(classPath);
+                Class<?> clazz = JavaAccess.findClass(classPath);
                 if (clazz == null) {
                     continue;
                 }
@@ -40,7 +40,7 @@ public final class AnnotationTools {
             BufferedReader reader = source.openBufferedReader();
             String classPath;
             while ((classPath = reader.readLine()) != null) {
-                Class<?> clazz = JavaAccessor.getClass(classPath);
+                Class<?> clazz = JavaAccess.findClass(classPath);
                 if (clazz == null || !superType.isAssignableFrom(clazz)) {
                     continue;
                 }

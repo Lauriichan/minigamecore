@@ -8,7 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import me.lauriichan.minecraft.minigame.util.AnnotationTools;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 import me.lauriichan.minecraft.minigame.util.JavaInstance;
 import me.lauriichan.minecraft.minigame.util.source.DataSource;
 import me.lauriichan.minecraft.minigame.util.source.Resources;
@@ -42,9 +42,9 @@ public class InjectManager {
         for (int index = 0; index < listeners.size(); index++) {
             listeners.get(index).onInjectClass(type);
         }
-        Field[] fields = JavaAccessor.getFields(type);
+        Field[] fields = JavaAccess.getFields(type);
         for (Field field : fields) {
-            if (Modifier.isStatic(field.getModifiers())) {
+            if (!Modifier.isStatic(field.getModifiers())) {
                 continue;
             }
             inject(null, field);
@@ -56,7 +56,7 @@ public class InjectManager {
         for (int index = 0; index < listeners.size(); index++) {
             listeners.get(index).onInjectInstance(type, object);
         }
-        Field[] fields = JavaAccessor.getFields(type);
+        Field[] fields = JavaAccess.getFields(type);
         for (Field field : fields) {
             if (Modifier.isStatic(field.getModifiers())) {
                 continue;
@@ -66,7 +66,7 @@ public class InjectManager {
     }
 
     private void inject(Object instance, Field field) {
-        if (!JavaAccessor.hasAnnotation(field, Inject.class)) {
+        if (!JavaAccess.hasAnnotation(field, Inject.class)) {
             return;
         }
         Object value = JavaInstance.get(field.getType());
@@ -76,10 +76,10 @@ public class InjectManager {
             return;
         }
         if (instance == null) {
-            JavaAccessor.setStaticValue(field, value);
+            JavaAccess.setStaticValue(field, value);
             return;
         }
-        JavaAccessor.setObjectValue(instance, field, value);
+        JavaAccess.setObjectValue(instance, field, value);
     }
 
     public <E> E initialize(Class<E> type) {

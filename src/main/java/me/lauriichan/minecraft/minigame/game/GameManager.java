@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import me.lauriichan.minecraft.minigame.inject.InjectListener;
 import me.lauriichan.minecraft.minigame.inject.InjectManager;
 import me.lauriichan.minecraft.minigame.util.AnnotationTools;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 import me.lauriichan.minecraft.minigame.util.source.DataSource;
 import me.lauriichan.minecraft.minigame.util.source.Resources;
 
@@ -50,7 +50,7 @@ public final class GameManager implements InjectListener {
 
     public boolean load(final DataSource data) {
         return AnnotationTools.load(data, clazz -> {
-            Minigame minigame = JavaAccessor.getAnnotation(clazz, Minigame.class);
+            Minigame minigame = JavaAccess.getAnnotation(clazz, Minigame.class);
             if (minigame == null) {
                 return;
             }
@@ -116,7 +116,7 @@ public final class GameManager implements InjectListener {
             GameHolder current = games.get(activeId);
             if (current != null) {
                 try {
-                    current.getGame().onStop();
+                    current.getGame().onStop(current);
                 } catch (Exception exception) {
                     logger.log(Level.SEVERE, "Failed to stop game '" + current.getName() + "'!", exception);
                 }
@@ -128,7 +128,7 @@ public final class GameManager implements InjectListener {
             return true;
         }
         try {
-            holder.getGame().onStart();
+            holder.getGame().onStart(holder);
         } catch (Exception exception) {
             logger.log(Level.SEVERE, "Failed to start game '" + holder.getName() + "'!", exception);
             activeId = null;

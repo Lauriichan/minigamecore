@@ -31,6 +31,11 @@ public abstract class ConfigReloadable<T extends IConfiguration<?, ?>> extends D
 
     @Override
     protected final void onLoad() throws Throwable {
+        if (!file.exists()) {
+            config.clear();
+            onConfigLoad();
+            return;
+        }
         try {
             config.load(file);
         } catch (Throwable throwable) {

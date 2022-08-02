@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.function.Function;
 
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -11,7 +12,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import me.lauriichan.minecraft.minigame.MinigameCore;
 import me.lauriichan.minecraft.minigame.inject.InjectListener;
 import me.lauriichan.minecraft.minigame.inject.InjectManager;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 
 public final class ConfigManager implements InjectListener {
 
@@ -27,57 +28,81 @@ public final class ConfigManager implements InjectListener {
         this.core = core;
     }
 
+    public void reload() {
+        FileConfig[] configs = configurations.values().toArray(FileConfig[]::new);
+        for (FileConfig config : configs) {
+            config.reload();
+        }
+    }
+
+    public FileConfig getConfig(String path) {
+        return configurations.get(path);
+    }
+
     @Override
     public void onInjectClass(Class<?> type) {
-        Field[] fields = JavaAccessor.getFields(type);
+        Field[] fields = JavaAccess.getFields(type);
+        HashSet<String> path = new HashSet<>();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
                 continue;
             }
-            syncValue(null, field);
-            syncSection(null, field);
+            path.add(syncValue(null, field));
+            path.add(syncSection(null, field));
+        }
+        for (String current : path) {
+            if (current == null) {
+                continue;
+            }
+            get(current).reload();
         }
     }
 
     @Override
     public void onInjectInstance(Class<?> type, Object instance) {
-        Field[] fields = JavaAccessor.getFields(type);
+        Field[] fields = JavaAccess.getFields(type);
+        HashSet<String> path = new HashSet<>();
         for (Field field : fields) {
             if (Modifier.isStatic(field.getModifiers())) {
                 continue;
             }
-            syncValue(instance, field);
-            syncSection(instance, field);
+            path.add(syncValue(instance, field));
+            path.add(syncSection(instance, field));
+        }
+        for (String current : path) {
+            if (current == null) {
+                continue;
+            }
+            get(current).reload();
         }
     }
 
-    private void syncValue(Object instance, Field field) {
-        Config configInfo = JavaAccessor.getAnnotation(field, Config.class);
+    private String syncValue(Object instance, Field field) {
+        Config configInfo = JavaAccess.getAnnotation(field, Config.class);
         if (configInfo == null) {
-            return;
+            return null;
         }
         ConfigSync sync = new ConfigSync(instance, field);
-        sync.update(get(sync.getPath()).getConfig().get(sync.getKey()));
         synchronize.computeIfAbsent(sync.getPath(), LIST_FUNCTION).add(sync);
+        return sync.getPath();
     }
 
-    private void syncSection(Object instance, Field field) {
-        ConfigSection configInfo = JavaAccessor.getAnnotation(field, ConfigSection.class);
+    private String syncSection(Object instance, Field field) {
+        ConfigSection configInfo = JavaAccess.getAnnotation(field, ConfigSection.class);
         if (configInfo == null) {
-            return;
+            return null;
         }
         ConfigSectionSync sync = new ConfigSectionSync(instance, field);
-        sync.update(get(sync.getPath()).getConfig().get(sync.getKey()));
         synchronize.computeIfAbsent(sync.getPath(), LIST_FUNCTION).add(sync);
+        return sync.getPath();
     }
 
     private FileConfig get(String path) {
-        if (!configurations.containsKey(path)) {
+        if (configurations.containsKey(path)) {
             return configurations.get(path);
         }
         FileConfig config = new FileConfig(path, core.getResources().fileData(path).getSource(), core.getLogger(), this);
         configurations.put(path, config);
-        config.load();
         return config;
     }
 
@@ -88,7 +113,14 @@ public final class ConfigManager implements InjectListener {
         }
         for (int index = 0; index < values.size(); index++) {
             IConfigSync sync = values.get(index);
-            sync.update(sync.extractValue(configuration, sync.getKey()));
+            Object value = sync.extractValue(configuration, sync.getKey());
+            if (value == null) {
+                if (sync.setFallback(configuration, sync.getKey())) {
+                    sync.update(sync.extractValue(configuration, sync.getKey()));
+                }
+                continue;
+            }
+            sync.update(value);
         }
     }
 

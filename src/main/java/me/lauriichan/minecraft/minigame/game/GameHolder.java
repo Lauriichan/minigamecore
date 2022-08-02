@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import me.lauriichan.minecraft.minigame.inject.InjectManager;
+import me.lauriichan.minecraft.minigame.util.JavaInstance;
 
 public final class GameHolder {
 
@@ -25,6 +26,7 @@ public final class GameHolder {
     private boolean active;
 
     GameHolder(final Class<? extends Game> type, final Game game, final Minigame minigame) {
+        JavaInstance.put(game);
         this.type = type;
         this.game = game;
         this.id = minigame.id();

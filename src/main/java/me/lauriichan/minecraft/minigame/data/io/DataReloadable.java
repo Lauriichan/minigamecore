@@ -3,43 +3,37 @@ package me.lauriichan.minecraft.minigame.data.io;
 import java.io.File;
 import java.util.logging.Level;
 
-import me.lauriichan.minecraft.minigame.data.automatic.message.Messages;
-import me.lauriichan.minecraft.minigame.util.Tuple;
+import me.lauriichan.minecraft.minigame.data.CoreMessages;
+import me.lauriichan.minecraft.minigame.data.automatic.message.Key;
 
 public abstract class DataReloadable extends Reloadable {
 
-    private final Tuple<String, Object> name;
+    private final Key name;
 
     public DataReloadable(File file) {
         super(file);
-        this.name = Tuple.of("name", file.getName());
+        this.name = Key.of("name", file.getName());
     }
 
     public DataReloadable(File file, boolean saveOnExit) {
         super(file, saveOnExit);
-        this.name = Tuple.of("name", file.getName());
+        this.name = Key.of("name", file.getName());
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public final void load() {
-        Messages.DATA_LOAD_START.log(Level.INFO, Tuple.of("name", name));
-        if (!file.exists()) {
-            Messages.DATA_LOAD_SUCCESS.log(Level.INFO, Tuple.of("name", name));
-            return;
-        }
+        CoreMessages.DATA_LOAD_START.log(Level.INFO, name);
         try {
             onLoad();
-            Messages.DATA_LOAD_SUCCESS.log(Level.INFO, Tuple.of("name", name));
+            CoreMessages.DATA_LOAD_SUCCESS.log(Level.INFO, name);
         } catch (Throwable exp) {
-            Messages.DATA_LOAD_FAILED.log(Level.WARNING, exp, Tuple.of("name", name));
+            CoreMessages.DATA_LOAD_FAILED.log(Level.WARNING, exp, name);
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public final void save() {
-        Messages.DATA_SAVE_START.log(Level.INFO, Tuple.of("name", name));
+        CoreMessages.DATA_SAVE_START.log(Level.INFO, name);
         try {
             if (!file.exists()) {
                 if (file.getParentFile() != null) {
@@ -48,9 +42,9 @@ public abstract class DataReloadable extends Reloadable {
                 file.createNewFile();
             }
             onSave();
-            Messages.DATA_SAVE_SUCCESS.log(Level.INFO, Tuple.of("name", name));
+            CoreMessages.DATA_SAVE_SUCCESS.log(Level.INFO, name);
         } catch (Throwable exp) {
-            Messages.DATA_SAVE_FAILED.log(Level.WARNING, exp, Tuple.of("name", name));
+            CoreMessages.DATA_SAVE_FAILED.log(Level.WARNING, exp, name);
         }
     }
 

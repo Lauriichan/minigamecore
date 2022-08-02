@@ -1,18 +1,22 @@
 package me.lauriichan.minecraft.minigame.command;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.command.CommandSender;
 
+import com.syntaxphoenix.syntaxapi.utils.java.Primitives;
+
 import me.lauriichan.minecraft.minigame.command.annotation.Parser;
 import me.lauriichan.minecraft.minigame.command.parser.*;
+import me.lauriichan.minecraft.minigame.data.io.Reloadable;
 import me.lauriichan.minecraft.minigame.inject.InjectManager;
 import me.lauriichan.minecraft.minigame.util.AnnotationTools;
 import me.lauriichan.minecraft.minigame.util.IntWrapper;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 import me.lauriichan.minecraft.minigame.util.Reference;
 import me.lauriichan.minecraft.minigame.util.Tuple;
 import me.lauriichan.minecraft.minigame.util.source.DataSource;
@@ -21,27 +25,27 @@ import me.lauriichan.minecraft.minigame.util.source.Resources;
 @SuppressWarnings("rawtypes")
 public final class ParserManager {
 
-    private static final Object[] EMPTY_ARGUMENTS = {};
+    private static final ParseResult INVALID_RESULT = new ParseResult(null, null, null, 0);
+    private static final ParseResult EMPTY_RESULT = new ParseResult(new Object[0], null, null, 0);
 
     private final HashMap<Class<? extends IArgumentParser>, IArgumentParser<?>> parsers = new HashMap<>();
-    private final HashMap<Class<?>, Class<? extends IArgumentParser>> types = new HashMap<>();
+    private final LinkedHashMap<Class<?>, Class<? extends IArgumentParser>> types = new LinkedHashMap<>();
 
     private final Logger logger;
-    private final InjectManager inject;
+    private final InjectManager injectManager;
 
-    public ParserManager(final Logger logger, final InjectManager inject) {
+    public ParserManager(Logger logger, InjectManager injectManager) {
         this.logger = logger;
-        this.inject = inject;
+        this.injectManager = injectManager;
         parsers.put(ObjectParser.class, new ObjectParser(this));
-        parsers.put(StringParser.class, new StringParser());
-        parsers.put(ByteParser.class, new ByteParser());
-        parsers.put(ShortParser.class, new ShortParser());
-        parsers.put(IntegerParser.class, new IntegerParser());
-        parsers.put(LongParser.class, new LongParser());
-        parsers.put(FloatParser.class, new FloatParser());
-        parsers.put(DoubleParser.class, new DoubleParser());
-        parsers.put(EnumParser.class, new EnumParser());
-        parsers.put(BlockDataParser.class, new BlockDataParser());
+        register(String.class, new StringParser());
+        register(Byte.class, new ByteParser());
+        register(Short.class, new ShortParser());
+        register(Integer.class, new IntegerParser());
+        register(Long.class, new LongParser());
+        register(Float.class, new FloatParser());
+        register(Double.class, new DoubleParser());
+        register(Enum.class, new EnumParser());
     }
 
     public boolean load(final Resources resources) {
@@ -50,11 +54,11 @@ public final class ParserManager {
 
     public boolean load(final DataSource data) {
         return AnnotationTools.load(data, clazz -> {
-            Parser parserInfo = JavaAccessor.getAnnotation(clazz, Parser.class);
+            final Parser parserInfo = JavaAccess.getAnnotation(clazz, Parser.class);
             if (parserInfo == null) {
                 return;
             }
-            IArgumentParser<?> parser = inject.initialize(clazz);
+            final IArgumentParser<?> parser = injectManager.initialize(clazz);
             if (parser == null) {
                 return;
             }
@@ -63,15 +67,20 @@ public final class ParserManager {
         }, IArgumentParser.class);
     }
 
+    private void register(final Class<?> clazz, final IArgumentParser<?> parser) {
+        parsers.put(parser.getClass().asSubclass(IArgumentParser.class), parser);
+        types.put(clazz, parser.getClass());
+    }
+
     public IArgumentParser<?> getParserFor(final Class<?> type) {
         if (type == null) {
             return null;
         }
         Class<? extends IArgumentParser> parserType = types.get(type);
         if (parserType == null) {
-            final Class<?>[] classes = types.keySet().toArray(Class[]::new);
+            final Class<?>[] classes = types.keySet().toArray(new Class[0]);
             for (int index = 0; index < classes.length; index++) {
-                if (!type.isAssignableFrom(classes[index])) {
+                if (classes[index].isAssignableFrom(type)) {
                     parserType = types.get(type);
                     break;
                 }
@@ -83,51 +92,104 @@ public final class ParserManager {
         return parsers.get(parserType);
     }
 
-    public Object[] parseCommand(final ActionInfo action, final CommandSender sender, final int rawOffset, final String[] args) {
+    public ParseResult parseCommand(final ActionInfo action, final CommandSender sender, final int rawOffset, final String[] args) {
         if (action.arguments().size() == 0) {
-            return EMPTY_ARGUMENTS;
+            return EMPTY_RESULT;
         }
-        List<ArgumentInfo> arguments = action.arguments();
-        List<ArgumentInfo> sorted = action.sortedArguments();
-        Object[] output = new Object[sorted.size()];
-        Class<?> senderType = sender.getClass();
-        IntWrapper offset = new IntWrapper(rawOffset);
+        final List<ArgumentInfo> arguments = action.arguments();
+        final List<ArgumentInfo> sorted = action.sortedArguments();
+        final Object[] output = new Object[sorted.size()];
+        final Class<?> senderType = sender.getClass();
+        final IntWrapper offset = new IntWrapper(rawOffset);
+        int argIndex = 1;
         for (int index = 0; index < sorted.size(); index++) {
-            ArgumentInfo info = sorted.get(index);
+            final ArgumentInfo info = sorted.get(index);
             if (info.sender()) {
+                if (!CommandSender.class.isAssignableFrom(info.type())) {
+                    return INVALID_RESULT;
+                }
                 if (!info.type().isAssignableFrom(senderType)) {
-                    return null;
+                    return new ParseResult(null, info.type(), null, 0);
                 }
                 output[arguments.indexOf(info)] = sender;
                 continue;
             }
             try {
                 output[arguments.indexOf(info)] = parse(info, info.parserType(), offset, args);
-            } catch (Exception exp) { // Safety
-                if (exp instanceof IllegalArgumentException) {
-                    throw exp;
+            } catch (final Exception exp) { // Safety
+                if (info.optional()) {
+                    if (Primitives.isPrimitive(info.type()) && Number.class.isAssignableFrom(Primitives.fromPrimitive(info.type()))) {
+                        output[arguments.indexOf(info)] = 0;
+                        continue;
+                    }
+                    output[arguments.indexOf(info)] = null;
+                    continue;
                 }
-                logger.log(Level.WARNING, "Failed to parse argument for '" + action.command().name() + "'!", exp);
-                return null;
+                if (Reloadable.DEBUG) {
+                    logger.log(Level.WARNING,
+                        "Failed to parse argument '" + info.name() + "' of type '" + info.type() + "' at position " + argIndex, exp);
+                }
+                return new ParseResult(null, info.type(), info.name(), argIndex);
+            } finally {
+                argIndex++;
             }
         }
-        return output;
+        return new ParseResult(output, null, null, 0);
+    }
+
+    public void suggestCommand(final ActionInfo action, final CommandSender sender, final int rawOffset, final String[] args,
+        final List<String> suggestions) {
+        if (action.arguments().size() == 0) {
+            return;
+        }
+        final List<ArgumentInfo> sorted = action.sortedArguments();
+        final IntWrapper offset = new IntWrapper(rawOffset);
+        for (int index = 0; index < sorted.size(); index++) {
+            final ArgumentInfo info = sorted.get(index);
+            if (info.sender()) {
+                continue;
+            }
+            try {
+                suggest(info, info.parserType(), offset, args, suggestions);
+            } catch (final Exception exp) { // Safety
+                return;
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public <A extends IArgumentParser<?>> void suggest(final ArgumentInfo info, final Class<A> parserType, final IntWrapper offset,
+        final String[] arguments, final List<String> suggestions) {
+        final A parser = getParser(info, parserType);
+        Tuple<?, Integer> tuple;
+        try {
+            tuple = parser.parse(parserType, offset.value(), arguments, info.paramMap().get());
+        } catch (final IllegalArgumentException exp) {
+            tuple = Tuple.of(null, 0);
+        }
+        if (offset.value() + tuple.getSecond() + 1 < arguments.length) {
+            return;
+        }
+        parser.suggest(suggestions, (Tuple) tuple, info.type(), offset.value(), arguments, info.paramMap().get());
     }
 
     public <A extends IArgumentParser<?>> Object parse(final ArgumentInfo info, final Class<A> parserType, final IntWrapper offset,
         final String[] arguments) throws IllegalArgumentException {
-        Reference<IArgumentParser<?>> rawParser = info.parser();
-        if (rawParser.isEmpty()) {
-            initParser(info);
-        }
-        final A parser = parserType.cast(rawParser.get());
-        final Tuple tuple = parser.parse(info.type(), offset.value(), arguments, info.paramMap().get());
+        final Tuple tuple = getParser(info, parserType).parse(info.type(), offset.value(), arguments, info.paramMap().get());
         offset.add((Integer) tuple.getSecond());
         return tuple.getFirst();
     }
 
+    public <A extends IArgumentParser<?>> A getParser(final ArgumentInfo info, final Class<A> parserType) {
+        final Reference<IArgumentParser<?>> rawParser = info.parser();
+        if (rawParser.isEmpty()) {
+            initParser(info);
+        }
+        return parserType.cast(rawParser.get());
+    }
+
     private void initParser(final ArgumentInfo info) {
-        IArgumentParser<?> parser = parsers.get(info.parserType());
+        final IArgumentParser<?> parser = parsers.get(info.parserType());
         if (parser == null) {
             throw new IllegalStateException("Couldn't find parser '" + info.parserType().getName() + "'");
         }

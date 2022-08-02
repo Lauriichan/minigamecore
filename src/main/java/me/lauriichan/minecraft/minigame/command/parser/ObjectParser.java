@@ -17,20 +17,22 @@ public final class ObjectParser implements IArgumentParser<Object> {
     }
 
     @Override
-    public Tuple<Object, Integer> parse(Class<?> type, final int offset, final String[] arguments, ParamMap params)
+    public Tuple<Object, Integer> parse(Class<?> type, final int offset, final String[] arguments, final ParamMap params)
         throws IllegalArgumentException {
-        final IArgumentParser<?> parser = manager.getParserFor((type = Primitives.fromPrimitive(type)));
+        final IArgumentParser<?> parser = manager.getParserFor(type = Primitives.fromPrimitive(type));
         if (parser == null) {
             throw new IllegalArgumentException("Couldn't find parser for type '" + type.getSimpleName() + "'!");
         }
         return parser.parse(type, offset, arguments, params).mapFirst(v -> v);
     }
-    
+
     @Override
-    public Object readParam(Class<?> type, String name, StringReader reader) {
-        
-        return null;
-            
+    public Object readParam(Class<?> type, final String name, final StringReader reader) {
+        final IArgumentParser<?> parser = manager.getParserFor(type = Primitives.fromPrimitive(type));
+        if (parser == null) {
+            throw new IllegalArgumentException("Couldn't find parser for type '" + type.getSimpleName() + "'!");
+        }
+        return parser.readParam(type, name, reader);
     }
 
 }

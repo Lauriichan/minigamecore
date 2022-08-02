@@ -3,7 +3,7 @@ package me.lauriichan.minecraft.minigame.command;
 import me.lauriichan.minecraft.minigame.command.annotation.Param;
 import me.lauriichan.minecraft.minigame.util.Reference;
 
-final class ArgumentInfo implements Comparable<ArgumentInfo> {
+public final class ArgumentInfo implements Comparable<ArgumentInfo> {
 
     private final ActionInfo action;
 
@@ -12,15 +12,18 @@ final class ArgumentInfo implements Comparable<ArgumentInfo> {
     private final Class<? extends IArgumentParser<?>> parserType;
     private final Class<?> type;
 
-    private final int index;
+    private final String name;
     private final boolean sender;
     private final boolean optional;
 
     private final Reference<IArgumentParser<?>> parser = Reference.of();
     private final Reference<ParamMap> paramMap = Reference.of();
 
-    ArgumentInfo(final ActionInfo action, final Param[] params, final Class<? extends IArgumentParser<?>> parserType, final int index,
-        final Class<?> type, final boolean sender, final boolean optional) {
+    private final int index;
+
+    ArgumentInfo(final ActionInfo action, final String name, final Param[] params, final Class<? extends IArgumentParser<?>> parserType,
+        final int index, final Class<?> type, final boolean sender, final boolean optional) {
+        this.name = name;
         this.action = action;
         this.params = params;
         this.parserType = parserType;
@@ -32,6 +35,10 @@ final class ArgumentInfo implements Comparable<ArgumentInfo> {
 
     public ActionInfo action() {
         return action;
+    }
+
+    public String name() {
+        return name;
     }
 
     public Class<? extends IArgumentParser<?>> parserType() {

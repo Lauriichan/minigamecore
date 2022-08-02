@@ -10,7 +10,7 @@ import com.syntaxphoenix.syntaxapi.json.JsonValue;
 import com.syntaxphoenix.syntaxapi.json.ValueType;
 
 import me.lauriichan.minecraft.minigame.inject.InjectManager;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 import me.lauriichan.minecraft.minigame.util.Reference;
 
 public final class IOManager {
@@ -25,12 +25,12 @@ public final class IOManager {
     }
 
     public boolean register(final Class<? extends IDataExtension<?, ?>> clazz) {
-        final TypeId typeId = JavaAccessor.getAnnotation(clazz, TypeId.class);
+        final TypeId typeId = JavaAccess.getAnnotation(clazz, TypeId.class);
         if (typeId == null) {
             return false;
         }
         injector.inject(clazz);
-        final IDataExtension<?, ?> extension = (IDataExtension<?, ?>) JavaAccessor.instance(clazz);
+        final IDataExtension<?, ?> extension = (IDataExtension<?, ?>) JavaAccess.instance(clazz);
         if (extension == null) {
             return false;
         }

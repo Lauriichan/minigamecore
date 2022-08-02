@@ -24,7 +24,7 @@ import org.apache.commons.io.file.PathUtils;
 
 import me.lauriichan.minecraft.minigame.annotation.AnnotationId;
 import me.lauriichan.minecraft.minigame.annotation.AnnotationProcessor;
-import me.lauriichan.minecraft.minigame.util.JavaAccessor;
+import me.lauriichan.minecraft.minigame.util.JavaAccess;
 import me.lauriichan.minecraft.minigame.util.Reference;
 
 public final class Resources {
@@ -163,7 +163,7 @@ public final class Resources {
     }
 
     public PathSource pathAnnotation(Class<? extends Annotation> clazz) {
-        AnnotationId id = JavaAccessor.getAnnotation(clazz, AnnotationId.class);
+        AnnotationId id = JavaAccess.getAnnotation(clazz, AnnotationId.class);
         if (id == null) {
             return path(getInternalPath(AnnotationProcessor.ANNOTATION_RESOURCE + clazz.getSimpleName()));
         }
