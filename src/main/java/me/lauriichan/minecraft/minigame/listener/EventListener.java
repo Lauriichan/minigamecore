@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 import me.lauriichan.minecraft.minigame.inject.InjectManager;
 import me.lauriichan.minecraft.minigame.util.JavaAccess;
@@ -14,9 +15,12 @@ public final class EventListener {
     private final Object instance;
 
     private final EventAction[] actions;
+    
+    private final Logger logger;
 
-    EventListener(final InjectManager inject, final Class<?> type) {
+    EventListener(final InjectManager inject, final Logger logger, final Class<?> type) {
         this.type = Objects.requireNonNull(type);
+        this.logger = logger;
         Method[] methods = JavaAccess.getMethods(type);
         Object tmp = null;
         ArrayList<EventAction> actions = new ArrayList<>();
@@ -48,6 +52,10 @@ public final class EventListener {
         this.actions = actions.toArray(EventAction[]::new);
     }
 
+    public Logger getLogger() {
+        return logger;
+    }
+    
     public boolean hasActions() {
         return actions.length != 0;
     }

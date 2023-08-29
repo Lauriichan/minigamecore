@@ -60,7 +60,8 @@ public final class ListenerManager {
         }
         return AnnotationTools.load(source, (clazz) -> {
             try {
-                EventListener listener = new EventListener(injectManager, clazz);
+                logger.log(Level.INFO, "Loading '" + clazz.getName() + "'");
+                EventListener listener = new EventListener(injectManager, logger, clazz);
                 if (!listener.hasActions()) {
                     return;
                 }

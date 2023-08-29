@@ -32,15 +32,15 @@ public final class EventContainer implements org.bukkit.event.Listener {
     public void add(EventAction action) {
         EventPriority priority = action.getListener().handler().priority();
         ArrayList<EventAction> actions = map.computeIfAbsent(priority, LIST_BUILDER);
+        if (actions.contains(action)) {
+            return;
+        }
+        actions.add(action);
         if (executors[priority.getSlot()] == null) {
             EventExecutor executor = new ListenerImpl(manager.getGameManager(), actions);
             executors[priority.getSlot()] = executor;
             Bukkit.getPluginManager().registerEvent(clazz, this, priority, executor, manager.getPlugin(), false);
         }
-        if (actions.contains(action)) {
-            return;
-        }
-        actions.add(action);
     }
 
     public void dispose() {

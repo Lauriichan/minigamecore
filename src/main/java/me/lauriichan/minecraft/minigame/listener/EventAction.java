@@ -6,6 +6,7 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
 
 import org.bukkit.event.Event;
 
@@ -82,10 +83,20 @@ public final class EventAction {
 
     public void call(Event event) {
         if (_static) {
-            JavaAccess.invokeStatic(handle, event);
+            try {
+                handle.invoke(event);
+            } catch (Throwable e) {
+                parent.getLogger().log(Level.SEVERE,
+                    "Failed to invoke event '" + method.getName() + "' for event '" + event.getEventName() + "'", e);
+            }
             return;
         }
-        JavaAccess.invoke(parent.getInstance(), handle, event);
+        try {
+            handle.invoke(parent.getInstance(), event);
+        } catch (Throwable e) {
+            parent.getLogger().log(Level.SEVERE,
+                "Failed to invoke event '" + method.getName() + "' for event '" + event.getEventName() + "'", e);
+        }
     }
 
 }

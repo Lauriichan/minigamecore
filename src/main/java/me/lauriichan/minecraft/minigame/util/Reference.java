@@ -2,7 +2,7 @@ package me.lauriichan.minecraft.minigame.util;
 
 public final class Reference<E> {
 
-    private E value;
+    private volatile E value;
     private boolean locked = false;
 
     private Reference(E value) {

@@ -36,7 +36,12 @@ public final class GameManager implements InjectListener {
         }
         phase.onTick(delta);
         if (phase.nextPhase()) {
-            getActive().nextPhase();
+            ticker.pauseNonInt();
+            try {
+                getActive().nextPhase();
+            } finally {
+                ticker.startNonInt();
+            }
         }
     }
 
@@ -111,7 +116,7 @@ public final class GameManager implements InjectListener {
         if (holder != null && !games.containsValue(holder)) {
             return false;
         }
-        ticker.pause();
+        ticker.pauseNonInt();
         if (activeId != null) {
             GameHolder current = games.get(activeId);
             if (current != null) {
@@ -136,7 +141,7 @@ public final class GameManager implements InjectListener {
         }
         activeId = holder.getId();
         holder.setActive(true);
-        ticker.start();
+        ticker.startNonInt();
         return true;
     }
 

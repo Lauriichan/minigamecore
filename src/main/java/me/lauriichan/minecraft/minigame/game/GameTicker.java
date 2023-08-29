@@ -8,7 +8,10 @@ import java.util.logging.Logger;
 public final class GameTicker {
 
     private static final int FAILED_CONSOLE_SPAM = 3;
-    private static final long SECOND_IN_MILI = TimeUnit.SECONDS.toMillis(1);
+
+    private static final long SECOND_IN_NANO = TimeUnit.SECONDS.toNanos(1);
+    private static final long MINUTE_IN_NANO = TimeUnit.MINUTES.toNanos(1);
+    private static final long MILLIS_IN_NANO = TimeUnit.MILLISECONDS.toNanos(1);
 
     private static enum TickState {
         RUNNING,
@@ -17,76 +20,95 @@ public final class GameTicker {
     }
 
     private final Thread tickThread;
-    private TickState state = null;
-
-    private float executed = 0;
-    private float tps = 0;
-    private int targetTps = 20;
-
-    private long tickLength;
-    private long nanoTickLength;
-    private long hundrethNanoTickLength;
-
-    private long nanoTime = 0L;
-    private long nanoTmpTime = 0L;
-
-    private long miliTime = 0L;
-    private long miliNewTime = 0L;
-
-    private long delta = 0L;
-
-    private int failed = FAILED_CONSOLE_SPAM;
 
     private final LongConsumer tick;
     private final Logger logger;
 
+    private TickState state = TickState.PAUSED;
+    private int failed = FAILED_CONSOLE_SPAM;
+
+    private long averageTickTime;
+    private int tps, tpm;
+
+    private long targetTickLength;
+
     public GameTicker(final Logger logger, final LongConsumer tick) {
+        setTargetTps(20);
         this.tickThread = new Thread(this::tick);
         tickThread.setName("GameTick");
         tickThread.setDaemon(true);
+        tickThread.start();
         this.logger = logger;
         this.tick = tick;
     }
 
     private void tick() {
-        nanoTime = System.nanoTime();
-        nanoTmpTime = nanoTime + nanoTickLength;
-        miliTime = System.currentTimeMillis();
-        miliNewTime = miliTime + SECOND_IN_MILI;
+        long waitTime = 0, waitMillis = 0;
+        int cycles = 0;
+        long lastTick = System.nanoTime(), time = 0;
+        long sCount = 0, mCount = 0;
+        int sTicks = 0, mTicks = 0;
+        long delta = 0;
         while (state != TickState.STOPPED) {
-            try {
-                while (state == TickState.RUNNING) {
-                    delta = miliTime;
-                    if ((miliTime = System.currentTimeMillis()) > miliNewTime) {
-                        miliNewTime = miliTime + SECOND_IN_MILI;
-                        tps = (executed / targetTps);
-                        executed = 0;
-                    }
-                    delta = miliTime - delta;
-                    nanoTmpTime = nanoTime + nanoTickLength;
+            sCount = sTicks = 0;
+            while (state == TickState.RUNNING) {
+                time = System.nanoTime();
+                delta = Math.max(time - lastTick, 0);
+                lastTick = time;
+                sCount += delta;
+                mCount += delta;
+                sTicks++;
+                mTicks++;
+                executeTick(delta);
+                if (sCount >= SECOND_IN_NANO) {
+                    this.averageTickTime = Math.floorDiv(sCount, sTicks);
+                    sCount -= SECOND_IN_NANO;
+                    this.tps = sTicks;
+                    sTicks = 0;
+                }
+                if (mCount >= MINUTE_IN_NANO) {
+                    mCount -= MINUTE_IN_NANO;
+                    this.tpm = mTicks;
+                    mTicks = 0;
+                }
+                waitTime = targetTickLength - (System.nanoTime() - lastTick);
+                if (waitTime <= 0) {
+                    continue;
+                }
+                waitMillis = Math.floorDiv(waitTime, MILLIS_IN_NANO);
+                if (waitMillis > 5) {
                     try {
-                        tick.accept(delta);
-                        if (failed != FAILED_CONSOLE_SPAM) {
-                            logger.log(Level.FINE, "Recovered from GameTick fail for some reason");
-                            failed = FAILED_CONSOLE_SPAM;
-                        }
-                    } catch (Exception exp) {
-                        if (failed > 0) {
-                            logger.log(Level.SEVERE, "Failed to run gametick (" + (failed--) + "/" + FAILED_CONSOLE_SPAM + ")!", exp);
-                        }
-                    }
-                    executed++;
-                    nanoTime = System.nanoTime();
-                    if (tickLength > 20) {
-                        Thread.sleep(tickLength - 10);
-                    }
-                    while (nanoTmpTime - nanoTime < hundrethNanoTickLength) {
-                        Thread.yield();
+                        Thread.sleep(waitMillis - 3);
+                    } catch (InterruptedException e) {
+                        continue;
                     }
                 }
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                continue;
+                waitTime -= waitMillis * MILLIS_IN_NANO;
+                cycles = (int) Math.floorDiv(waitTime, 2);
+                while (cycles-- > 0) {
+                    Thread.yield();
+                }
+            }
+            if (state == TickState.PAUSED) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    continue;
+                }
+            }
+        }
+    }
+
+    private void executeTick(long delta) {
+        try {
+            tick.accept(delta);
+            if (failed != FAILED_CONSOLE_SPAM) {
+                logger.log(Level.FINE, "Recovered from GameTick fail for some reason");
+                failed = FAILED_CONSOLE_SPAM;
+            }
+        } catch (Exception exp) {
+            if (failed > 0) {
+                logger.log(Level.SEVERE, "Failed to run gametick (" + (failed--) + "/" + FAILED_CONSOLE_SPAM + ")!", exp);
             }
         }
     }
@@ -96,22 +118,31 @@ public final class GameTicker {
     }
 
     public void setTargetTps(int targetTps) {
-        this.targetTps = Math.min(Math.max(Math.abs(targetTps), 1), 1000);
-        this.tickLength = Math.max((long) Math.ceil(1000d / targetTps), 1);
-        this.nanoTickLength = TimeUnit.MILLISECONDS.toNanos(tickLength);
-        this.hundrethNanoTickLength = Math.floorDiv(nanoTickLength, 100);
+        this.targetTickLength = MILLIS_IN_NANO * Math.max((long) Math.ceil(1000d / targetTps), 1);
     }
 
     public int getTargetTps() {
-        return targetTps;
+        return (int) Math.floorDiv(1000 * MILLIS_IN_NANO, targetTickLength);
+    }
+    
+    public void setTargetTickLength(long targetLength) {
+        this.targetTickLength = Math.max(targetLength, 1);
     }
 
-    public long getTickLength() {
-        return tickLength;
+    public long getTargetTickLength() {
+        return targetTickLength;
+    }
+    
+    public long getAverageTickTime() {
+        return averageTickTime;
     }
 
-    public float getTps() {
+    public int getTps() {
         return tps;
+    }
+    
+    public int getTpm() {
+        return tpm;
     }
 
     public boolean isStopped() {
@@ -134,12 +165,26 @@ public final class GameTicker {
         tickThread.interrupt();
     }
 
+    public void startNonInt() {
+        if (state == TickState.STOPPED) {
+            return;
+        }
+        state = TickState.RUNNING;
+    }
+
     public void pause() {
         if (state == TickState.STOPPED) {
             return;
         }
         state = TickState.PAUSED;
         tickThread.interrupt();
+    }
+
+    public void pauseNonInt() {
+        if (state == TickState.STOPPED) {
+            return;
+        }
+        state = TickState.PAUSED;
     }
 
     public void stop() {
