@@ -70,7 +70,7 @@
 							</excludes>
 						</filter>
 					</filters>
-					<createDependencyReducedPom>true</createDependencyReducedPom>
+					<createDependencyReducedPom>false</createDependencyReducedPom>
 					<relocations>
 						<relocation>
 							<pattern>org.apache.commons.io</pattern>
