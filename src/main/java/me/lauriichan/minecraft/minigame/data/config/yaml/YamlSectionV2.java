@@ -9,14 +9,14 @@ import org.bukkit.configuration.serialization.ConfigurationSerializable;
 
 import me.lauriichan.minecraft.minigame.data.config.ISection;
 
-public class YamlSection implements ISection<Object, Class<?>> {
+class YamlSectionV2 implements IYamlSection {
 
     protected final ConfigurationSection handle;
     protected final ISection<Object, Class<?>> parent;
 
-    public YamlSection(ConfigurationSection handle, ISection<Object, Class<?>> parent) {
+    public YamlSectionV2(ConfigurationSection handle, ISection<Object, Class<?>> parent) {
         this.handle = Objects.requireNonNull(handle, "Handle can't be null!");
-        if (this instanceof YamlConfig) {
+        if (this instanceof YamlConfigV2) {
             this.parent = parent;
             return;
         }
@@ -48,7 +48,10 @@ public class YamlSection implements ISection<Object, Class<?>> {
 
     @Override
     public void clear() {
-
+        String[] keys = handle.getKeys(false).toArray(String[]::new);
+        for (String key : keys) {
+            handle.set(key, null);
+        }
     }
 
     @Override
@@ -136,12 +139,12 @@ public class YamlSection implements ISection<Object, Class<?>> {
         if (section == null) {
             return null;
         }
-        return new YamlSection(section, this);
+        return new YamlSectionV2(section, this);
     }
 
     @Override
     public ISection<Object, Class<?>> createSection(String path) {
-        return new YamlSection(handle.createSection(path), this);
+        return new YamlSectionV2(handle.createSection(path), this);
     }
 
     @Override

@@ -13,9 +13,9 @@ import com.syntaxphoenix.syntaxapi.utils.java.Exceptions;
 
 import me.lauriichan.minecraft.minigame.util.BukkitColor;
 import me.lauriichan.minecraft.minigame.util.JavaAccess;
+import me.lauriichan.minecraft.minigame.util.MinigameVersion;
 import me.lauriichan.minecraft.minigame.util.Placeholder;
 import me.lauriichan.minecraft.minigame.util.Reference;
-import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -25,6 +25,17 @@ public final class Text {
 
     private static final ArrayList<Text> VALUES = new ArrayList<>();
     private static final ArrayList<String> IDS = new ArrayList<>();
+    
+    private static final TextAdapter ADAPTER = create();
+
+    public static TextAdapter create() {
+        switch (MinigameVersion.VERSION) {
+        case V1:
+            return new TextAdapterV1();
+        default:
+            return new TextAdapterV2();
+        }
+    }
 
     private static Logger LOGGER;
 
@@ -106,12 +117,7 @@ public final class Text {
     }
 
     public void send(final CommandSender sender, final ClickEvent clickEvent, final HoverEvent hoverEvent, final Key... placeholders) {
-        final BaseComponent[] components = TextComponent.fromLegacyText(asColoredMessageString(placeholders), ChatColor.GRAY);
-        for (BaseComponent component : components) {
-            component.setClickEvent(clickEvent);
-            component.setHoverEvent(hoverEvent);
-        }
-        sender.spigot().sendMessage(components);
+        ADAPTER.send(asColoredMessageString(placeholders), sender, clickEvent, hoverEvent);
     }
 
     public void sendConsole(final Key... placeholders) {

@@ -13,7 +13,7 @@ public interface IConfigSync {
     }
 
     default Object extractValue(YamlConfiguration configuration, String key) {
-        if (!configuration.contains(key, true)) {
+        if (configuration.get(key, null) == null) {
             return null;
         }
         return configuration.get(key);

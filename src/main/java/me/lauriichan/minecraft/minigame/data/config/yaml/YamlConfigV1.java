@@ -4,11 +4,9 @@ import java.io.File;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 
-import me.lauriichan.minecraft.minigame.data.config.IConfiguration;
+class YamlConfigV1 extends YamlSectionV1 implements IYamlConfig {
 
-public class YamlConfig extends YamlSection implements IConfiguration<Object, Class<?>> {
-
-    public YamlConfig() {
+    public YamlConfigV1() {
         super(new YamlConfiguration(), null);
     }
 
