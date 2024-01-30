@@ -9,7 +9,7 @@ public enum MinigameVersion {
     
     private static MinigameVersion detect() {
         MinigameVersion[] versions = MinigameVersion.values();
-        for (int i = versions.length - 1; i > 0; i++) {
+        for (int i = versions.length - 1; i > 0; i--) {
             try {
                 Class.forName(versions[i].activationClass);
             } catch (ClassNotFoundException e) {
