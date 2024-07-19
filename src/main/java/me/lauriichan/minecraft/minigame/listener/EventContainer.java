@@ -37,7 +37,7 @@ public final class EventContainer implements org.bukkit.event.Listener {
         }
         actions.add(action);
         if (executors[priority.getSlot()] == null) {
-            EventExecutor executor = new ListenerImpl(manager.getGameManager(), actions);
+            EventExecutor executor = new ListenerImpl(this, manager.getGameManager(), actions);
             executors[priority.getSlot()] = executor;
             Bukkit.getPluginManager().registerEvent(clazz, this, priority, executor, manager.getPlugin(), false);
         }
@@ -55,15 +55,20 @@ public final class EventContainer implements org.bukkit.event.Listener {
     private static final class ListenerImpl implements EventExecutor {
 
         private final ArrayList<EventAction> actions;
+        private final EventContainer container;
         private final GameManager game;
 
-        public ListenerImpl(final GameManager game, final ArrayList<EventAction> actions) {
+        public ListenerImpl(final EventContainer container, final GameManager game, final ArrayList<EventAction> actions) {
             this.actions = actions;
+            this.container = container;
             this.game = game;
         }
 
         @Override
         public void execute(Listener listener, Event event) throws EventException {
+            if (!container.clazz.isAssignableFrom(event.getClass())) {
+                return;
+            }
             if (!(event instanceof Cancellable)) {
                 for (int index = 0; index < actions.size(); index++) {
                     EventAction action = actions.get(index);

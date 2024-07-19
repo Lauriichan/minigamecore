@@ -48,7 +48,7 @@ public final class MinigameCore {
         this.injectManager = new InjectManager(logger);
         this.parserManager = new ParserManager(logger, injectManager);
         this.commandManager = new CommandManager(plugin, parserManager, injectManager);
-        this.ioManager = new IOManager(injectManager);
+        this.ioManager = new IOManager(logger, injectManager);
         this.configManager = new ConfigManager(this, injectManager);
         this.gameManager = new GameManager(logger, injectManager);
         this.listenerManager = new ListenerManager(plugin, gameManager, injectManager);

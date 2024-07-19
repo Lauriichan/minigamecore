@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.syntaxphoenix.syntaxapi.json.JsonObject;
 import com.syntaxphoenix.syntaxapi.json.JsonValue;
@@ -18,9 +20,12 @@ public final class IOManager {
     private static final Function<String, ArrayList<DataInfo>> FUNC = ignore -> new ArrayList<>();
 
     private final HashMap<String, ArrayList<DataInfo>> map = new HashMap<>();
+    
+    private final Logger logger;
     private final InjectManager injector;
 
-    public IOManager(final InjectManager injector) {
+    public IOManager(final Logger logger, final InjectManager injector) {
+        this.logger = Objects.requireNonNull(logger);
         this.injector = Objects.requireNonNull(injector);
     }
 
@@ -41,9 +46,6 @@ public final class IOManager {
     boolean register(final DataInfo info) {
         final ArrayList<DataInfo> list = map.computeIfAbsent(info.hasId() ? info.getId() : null, FUNC);
         if (list.contains(info)) {
-            if (list.isEmpty()) {
-                map.remove(info.hasId() ? info.getId() : null);
-            }
             return false;
         }
         list.add(info);
@@ -66,9 +68,9 @@ public final class IOManager {
             }
             return null;
         } catch (Throwable throwable) {
-            //            if (Main.CONFIG.isDebug()) {
-            //                JavaLogger.log(LogType.ERROR, "Failed to convert '" + id + "'!", throwable);
-            //            }
+            if (Reloadable.DEBUG) {
+                logger.log(Level.SEVERE, "Failed to convert data with id '%s'".formatted(id), throwable);
+            }
             return null;
         }
     }
@@ -92,9 +94,9 @@ public final class IOManager {
             }
             return nullInfo == null ? null : convertImpl(nullInfo, object, abstraction, id);
         } catch (Throwable throwable) {
-            //            if (Main.CONFIG.isDebug()) {
-            //                JavaLogger.log(LogType.ERROR, "Failed to convert '" + id + "'!", throwable);
-            //            }
+            if (Reloadable.DEBUG) {
+                logger.log(Level.SEVERE, "Failed to convert data with id '%s'".formatted(id), throwable);
+            }
             return null;
         }
     }
@@ -122,17 +124,17 @@ public final class IOManager {
             return null;
         }
         final JsonObject jsonObject = new JsonObject();
-        jsonObject.set("Id", id.get());
-        jsonObject.set("Data", tag);
+        jsonObject.set("id", id.get());
+        jsonObject.set("data", tag);
         return jsonObject;
     }
 
     public Object deserializeJson(final JsonObject object) {
-        if (!object.has("Id", ValueType.STRING) || !object.has("Data")) {
+        if (!object.has("id", ValueType.STRING) || !object.has("data")) {
             return null;
         }
-        final String id = object.get("Id").getValue().toString();
-        final JsonValue<?> data = object.get("Data");
+        final String id = object.get("id").getValue().toString();
+        final JsonValue<?> data = object.get("data");
         return convert(id, data);
     }
 
